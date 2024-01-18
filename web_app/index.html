@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fetch API Example</title>
+    <style>
+        p {
+            display: flex;
+            gap: 10px;
+        }
+        input {
+            border: 2px groove rgb(192, 192, 192);
+        }
+        p span {
+            padding: 5px;
+            border: 1px groove rgb(192, 192, 192);
+            background-color: #eee;
+            flex: 1 1 50%;
+        }
+        .flex {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: row;
+            gap: 16px;
+        }
+        .content {
+            flex: 1;
+            padding: 16px;
+            border: 2px groove rgb(192, 192, 192);
+        }
+        .actions-history span {
+            background-color: #f2f2f2;
+            color: #999;
+            padding: 3px;
+            border: 1px solid #ccc;
+            display: flex;
+            align-items: center;
+            flex: 1 1 50%;
+        }
+        .actions-history h1 span {
+            background-color: white;
+            color: black;
+            padding: 0;
+            border: 0 none;
+            display: inline-block;
+        }
+        .actions-history .separator {
+            flex: auto;
+        }
+        .actions-history p {
+            gap: 0;
+        }
+        .empty span {
+            flex: 1;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+<h1>Controls</h1>
+<form>
+    <fieldset>
+        <legend>Setup</legend>
+        <div>
+            <label for="sourceFolder">Source Folder:</label>
+            <input type="text" id="sourceFolder" placeholder="/path/to/source/folder">
+        </div>
+        <div>
+            <label for="outputFolder">Output Folder:</label>
+            <input type="text" id="outputFolder" placeholder="/path/to/output/folder">
+        </div>
+        <div>
+            <label for="videoFolder">Put all videos to single folder?</label>
+            <input type="checkbox" id="videoFolder">
+        </div>
+        <div>
+            <label for="putBack">"Put back" option</label>
+            <input type="checkbox" id="putBack">
+        </div>
+        <div>
+            <label for="preview">Preview</label>
+            <input type="checkbox" id="preview">
+        </div>
+        <div>
+            <button type="button" onclick="saveConfig()">Save</button>
+        </div>
+    </fieldset>
+    <fieldset>
+        <legend>Actions</legend>
+        <div>
+            <button type="button" onclick="fetchFiles()">Fetch Files</button>
+        </div>
+    </fieldset>
+</form>
+<div class="flex">
+    <div class="content">
+        <h1>Actions <span id="total_actions"></span></h1>
+        <div id="output"></div>
+    </div>
+    <div class="content actions-history">
+        <h1>Actions history <span id="history_length"></span></h1>
+        <button onclick="eraseActionsHistory()">Erase</button>
+        <div id="actions_history">
+<!--            <p>-->
+<!--                <span>//Users/alef/Library/CloudStorage/Dropbox/Camera Uploads/2021-02-01 01 copy.jpg</span>-->
+<!--                <span> =&gt; </span>-->
+<!--                <span>//Volumes/MyPassport/test/2021/2021.02/2021.02.01/2021-02-01 01 copy.jpg</span>-->
+<!--            </p>-->
+        </div>
+    </div>
+</div>
+
+<script>
+    function fetchFiles() {
+        const sourceFolder = document.getElementById('sourceFolder').value;
+        const outputFolder = document.getElementById('outputFolder').value;
+        const videoFolder = document.getElementById('videoFolder').checked;
+
+        const apiUrl = 'http://localhost:3000/processFiles';
+
+        fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json', // Adjust based on your server's expectations
+                // Add any other headers if needed
+            },
+            body: JSON.stringify({
+                sourceFolder,
+                outputFolder,
+                videoFolder
+            }),
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Handle the data received from the server
+                displayResults(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+
+    function displayResults(data) {
+        const sourceFolder = document.getElementById('sourceFolder').value;
+        const outputElement = document.getElementById('output');
+        const totalActions = document.getElementById('total_actions').textContent = `(${data.totalFiles})`;
+        outputElement.innerHTML = ''; // Clear previous content
+        const buttonTextContentLR = ' => ';
+        const buttonTextContentRL = ' <= ';
+
+        console.log(data);
+        // Display the results in the output element
+        if (data && Array.isArray(data.files)) {
+            data.files.forEach((file, index) => {
+                const fileElement = document.createElement("p");
+                const fileElementBefore = document.createElement("span");
+                const putBack = document.getElementById("putBack").checked;
+                fileElementBefore.textContent = `/${file.source_path_log}`;
+                fileElement.appendChild(fileElementBefore);
+                const fileElementMiddle = document.createElement("button");
+
+                fileElementMiddle.onclick = async (event) => {
+                    console.log(event);
+                    const buttonStateBeforeMove = event.target.textContent;
+                    event.target.textContent = "Moving...";
+                    event.target.disabled = true;
+                    const result = await moveFile(data.files[index]);
+
+                    if(result.success) {
+                        event.target.removeAttribute("disabled");
+
+                        if(putBack) {
+                            event.target.textContent = buttonStateBeforeMove === buttonTextContentLR ? buttonTextContentRL : buttonTextContentLR;
+                            const output_path_log = data.files[index].output_path_log;
+                            data.files[index].output_path_log = data.files[index].source_path_log;
+                            data.files[index].source_path_log = output_path_log;
+                        } else {
+                            let actionsHistory = localStorage.getItem("actionsHistory");
+                            try {
+                                actionsHistory = actionsHistory ? JSON.parse(actionsHistory) : [];
+                            } catch (e) {
+                                actionsHistory = [];
+                            }
+
+                            actionsHistory.push(data.files[index]);
+                            localStorage.setItem("actionsHistory", JSON.stringify(actionsHistory));
+                            showActionsHistory();
+
+                            data.files.splice(index, 1);
+                            displayResults(data);
+                        }
+                    } else {
+                        event.target.textContent = result.error_code === 1 ? "Aborted" : "Error";
+                    }
+                };
+
+                fileElementMiddle.textContent = buttonTextContentLR;
+                fileElementMiddle.title = "Move file";
+                fileElement.appendChild(fileElementMiddle);
+
+                const fileElementAfter = document.createElement('span');
+                console.log(`file.path.year ${file.path.year}`);
+
+                if(file.path.year === "0000" || file.path.month === "00" || file.path.day === "00") {
+                    if(file.path.year === "0000") {
+                        fileElementAfter.innerHTML = `${sourceFolder}/`;
+                        const yearInput = document.createElement("input");
+                        yearInput.value = file.path.year;
+                        yearInput.placeholder = "Year";
+                        yearInput.id = `new_year_${index}`;
+                        yearInput.required = true;
+                        yearInput.minLength = 4;
+                        yearInput.maxLength = 4;
+                        yearInput.addEventListener("change", (event) => {
+                            file.path.year = event.target.value;
+                            const outputFolder = document.getElementById("outputFolder").value;
+                            file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
+                            displayResults(data);
+                        });
+                        fileElementAfter.append(yearInput);
+                    }
+
+
+                    if(file.path.month === "00") {
+                        const year = document.createElement('span');
+                        year.id = `new_year_${index}_month`;
+                        year.textContent = file.path.year;
+                        fileElementAfter.append(`/`);
+                        fileElementAfter.append(year);
+                        fileElementAfter.append(`.`);
+
+                        const monthInput = document.createElement("input");
+                        monthInput.placeholder = "Month";
+                        monthInput.value = file.path.month;
+                        fileElementAfter.append(monthInput);
+                    }
+
+                    if(file.path.day === "00") {
+                        const year = document.createElement('span');
+                        year.id = `new_year_${index}_month`;
+                        year.textContent = file.path.year;
+                        fileElementAfter.append(`/`);
+                        fileElementAfter.append(year);
+                        fileElementAfter.append(`.`);
+
+                        const month = document.createElement('span');
+                        month.id = `new_year_${index}_month`;
+                        month.textContent = file.path.month;
+                        fileElementAfter.append(month);
+                        fileElementAfter.append(`.`);
+
+                        const dayInput = document.createElement("input");
+                        dayInput.placeholder = "Day";
+                        dayInput.value = file.path.day;
+                        fileElementAfter.append(dayInput);
+                    }
+
+                    fileElementAfter.append(`/${file.origin_name}`);
+                } else {
+                    fileElementAfter.textContent = `/${file.output_path_log}`;
+                }
+
+                fileElement.appendChild(fileElementAfter);
+                outputElement.appendChild(fileElement);
+            });
+        } else {
+            outputElement.textContent = 'No files received from the server.';
+        }
+    }
+
+    function saveConfig() {
+        localStorage.setItem("sourceFolder", document.getElementById("sourceFolder").value);
+        localStorage.setItem("outputFolder", document.getElementById("outputFolder").value);
+        localStorage.setItem("videoFolder", document.getElementById("videoFolder").checked);
+        localStorage.setItem("putBack", document.getElementById("putBack").checked);
+        localStorage.setItem("preview", document.getElementById("preview").checked);
+    }
+
+    async function moveFile(file) {
+        console.log(file);
+
+        const apiUrl = 'http://localhost:3000/moveFile';
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json', // Adjust based on your server's expectations
+                    // Add any other headers if needed
+                },
+                body: JSON.stringify({
+                    file
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log(data);
+            return data; // Return the data received from the server
+        } catch (error) {
+            console.error('Error:', error);
+            throw error; // Re-throw the error so it can be caught in the calling code
+        }
+    }
+
+    function eraseActionsHistory() {
+        localStorage.setItem("actionsHistory", []);
+        showActionsHistory();
+    }
+
+    function showActionsHistory() {
+        let data = localStorage.getItem("actionsHistory");
+
+        try {
+            data = data ? JSON.parse(data) : [];
+        } catch (e) {
+            data = [];
+        }
+        console.log("actionsHistory", data);
+
+        const outputElement = document.getElementById("actions_history");
+        outputElement.innerHTML = ''; // Clear previous content
+        const buttonTextContentLR = ' => ';
+
+        const historyLength = document.getElementById('history_length').textContent = `(${data.length})`;
+
+        console.log(data);
+        data.reverse();
+        // Display the results in the output element
+        if (data.length > 0) {
+            data.forEach((file, index) => {
+                const fileElement = document.createElement("p");
+
+                const fileElementBefore = document.createElement("span");
+                fileElementBefore.textContent = `/${file.source_path_log}`;
+                fileElement.appendChild(fileElementBefore);
+
+                const fileElementMiddle = document.createElement("span");
+                fileElementMiddle.textContent = buttonTextContentLR;
+                fileElementMiddle.className = "separator";
+                fileElement.appendChild(fileElementMiddle);
+
+                const fileElementAfter = document.createElement("span");
+                fileElementAfter.textContent = `/${file.output_path_log}`;
+                fileElement.appendChild(fileElementAfter);
+
+                outputElement.appendChild(fileElement);
+            });
+        } else {
+            const fileElement = document.createElement("p");
+            fileElement.className = "empty";
+
+            const fileElementBefore = document.createElement("span");
+            fileElementBefore.textContent = "There is no actions history.";
+            fileElement.appendChild(fileElementBefore);
+
+            outputElement.appendChild(fileElement);
+        }
+    }
+
+    window.onload = () => {
+        document.getElementById("sourceFolder").value = localStorage.getItem("sourceFolder");
+        document.getElementById("outputFolder").value = localStorage.getItem("outputFolder");
+        document.getElementById("videoFolder").checked = localStorage.getItem("videoFolder") === "true";
+        document.getElementById("putBack").checked = localStorage.getItem("putBack") === "true";
+        document.getElementById("preview").checked = localStorage.getItem("preview") === "true";
+        showActionsHistory();
+    }
+</script>
+
+</body>
+</html>
