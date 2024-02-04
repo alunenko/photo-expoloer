@@ -207,8 +207,11 @@
                 const fileElementAfter = document.createElement('span');
                 console.log(`file.path.year ${file.path.year}`);
 
-                if(file.path.year === "0000" || file.path.month === "00" || file.path.day === "00") {
+                // if(file.path.year === "0000" || file.path.month === "00" || file.path.day === "00") {
+                if(file.path.year === "0000" || file.path.month === "00") {
                     if(file.path.year === "0000") {
+                        console.log("YEAR IF");
+                        console.log(`file.path.year ${file.path.year}`);
                         fileElementAfter.innerHTML = `${sourceFolder}/`;
                         const yearInput = document.createElement("input");
                         yearInput.value = file.path.year;
@@ -217,49 +220,82 @@
                         yearInput.required = true;
                         yearInput.minLength = 4;
                         yearInput.maxLength = 4;
-                        yearInput.addEventListener("change", (event) => {
+                        yearInput.addEventListener("change", (function(event) {
+                            console.log("YEAR EVENT");
                             file.path.year = event.target.value;
+                            console.log(file);
                             const outputFolder = document.getElementById("outputFolder").value;
+                            console.log(file, outputFolder);
+
+
+                            // API call?
+                            // videoFolder?condition1
                             file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
+                            console.log(file);
+                            console.log(`YEAR ${file.output_path_log}`);
+
                             displayResults(data);
-                        });
-                        fileElementAfter.append(yearInput);
+                        }).bind(this));
+
+                        fileElementAfter.appendChild(yearInput);
                     }
 
-
                     if(file.path.month === "00") {
-                        const year = document.createElement('span');
-                        year.id = `new_year_${index}_month`;
-                        year.textContent = file.path.year;
+                        console.log("MONTH IF");
+
+                        const year2 = document.createElement('span');
+                        year2.id = `new_year_${index}_month`;
+                        year2.textContent = file.path.year;
+
+                        if(file.path.year !== "0000") {
+                            fileElementAfter.innerHTML = `${sourceFolder}/`;
+                            const year1 = document.createElement('span');
+                            year1.id = `new_year_${index}`;
+                            year1.textContent = file.path.year;
+                            fileElementAfter.append(year1);
+                        }
+
                         fileElementAfter.append(`/`);
-                        fileElementAfter.append(year);
+                        fileElementAfter.append(year2);
                         fileElementAfter.append(`.`);
 
                         const monthInput = document.createElement("input");
                         monthInput.placeholder = "Month";
                         monthInput.value = file.path.month;
+
+                        monthInput.addEventListener("change", (event) => {
+                            console.log("MONTH EVENT");
+                            file.path.month = event.target.value;
+                            const outputFolder = document.getElementById("outputFolder").value;
+                            file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
+                            console.log(file);
+                            console.log(`MONTH ${file.output_path_log}`);
+
+                            displayResults(data);
+                        });
+
                         fileElementAfter.append(monthInput);
                     }
 
-                    if(file.path.day === "00") {
-                        const year = document.createElement('span');
-                        year.id = `new_year_${index}_month`;
-                        year.textContent = file.path.year;
-                        fileElementAfter.append(`/`);
-                        fileElementAfter.append(year);
-                        fileElementAfter.append(`.`);
-
-                        const month = document.createElement('span');
-                        month.id = `new_year_${index}_month`;
-                        month.textContent = file.path.month;
-                        fileElementAfter.append(month);
-                        fileElementAfter.append(`.`);
-
-                        const dayInput = document.createElement("input");
-                        dayInput.placeholder = "Day";
-                        dayInput.value = file.path.day;
-                        fileElementAfter.append(dayInput);
-                    }
+                    // if(file.path.day === "00") {
+                    //     const year = document.createElement('span');
+                    //     year.id = `new_year_${index}_month`;
+                    //     year.textContent = file.path.year;
+                    //     fileElementAfter.append(`/`);
+                    //     fileElementAfter.append(year);
+                    //     fileElementAfter.append(`.`);
+                    //
+                    //     const month = document.createElement('span');
+                    //     month.id = `new_year_${index}_month`;
+                    //     month.textContent = file.path.month;
+                    //     fileElementAfter.append(month);
+                    //     fileElementAfter.append(`.`);
+                    //
+                    //     const dayInput = document.createElement("input");
+                    //     dayInput.placeholder = "Day";
+                    //     dayInput.value = file.path.day;
+                    //     fileElementAfter.append(dayInput);
+                    // }
 
                     fileElementAfter.append(`/${file.origin_name}`);
                 } else {
