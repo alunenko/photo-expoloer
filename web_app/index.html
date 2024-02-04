@@ -256,6 +256,10 @@
                         const monthInput = document.createElement("input");
                         monthInput.placeholder = "Month";
                         monthInput.id = `new_month_${index}`;
+                        monthInput.required = true;
+                        monthInput.minLength = 1;
+                        monthInput.maxLength = 2;
+                        monthInput.pattern = "^(0[1-9]|1[0-2])$";
                         monthInput.value = file.path.month;
                         fileElementAfter.append(monthInput);
 
@@ -264,14 +268,21 @@
                         monthInput.addEventListener("change", (function(event) {
                             console.log("MONTH EVENT");
                             file.path.month = event.target.value;
-                            const outputFolder = document.getElementById("outputFolder").value;
 
-                            // API call?
-                            // videoFolder?condition1
-                            file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
-                            console.log(`MONTH ${file.output_path_log}`);
+                            if (!new RegExp("^(0[1-9]|1[0-2])$").test(event.target.value)) {
+                                alert("Invalid input. Please enter a number from 01 to 12.");
+                                // Optionally, you can reset the value to a default or clear it.
+                                monthInput.value = "00";
+                            } else {
+                                const outputFolder = document.getElementById("outputFolder").value;
 
-                            displayResults(data);
+                                // API call?
+                                // videoFolder?condition1
+                                file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
+                                console.log(`MONTH ${file.output_path_log}`);
+
+                                displayResults(data);
+                            }
                         }).bind(this));
                     } else {
                         const year = document.createElement('span');
