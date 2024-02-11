@@ -7,6 +7,8 @@ const util = require('util');
 const app = express();
 const port = 3000;
 
+let currentSourceFolder = '';
+
 app.use(express.json());
 
 const ErrorCodes = Object.freeze({
@@ -21,27 +23,28 @@ app.use((req, res, next) => {
     next();
 });
 
-
 app.post('/processFiles', (req, res) => {
-    const {sourceFolder, outputFolder, videoFolder} = req.body;
+    currentSourceFolder = req.body.sourceFolder;
+    const {outputFolder, videoFolder} = req.body;
 
-    if (!sourceFolder || !outputFolder) {
+    if (!currentSourceFolder || !outputFolder) {
         return res.status(400).json({error: 'Both sourceFolder and outputFolder are required.'});
     }
 
     // Read files in the source folder
-    fs.readdir(sourceFolder, (err, files) => {
+    fs.readdir(currentSourceFolder, (err, files) => {
         if (err) {
             return res.status(500).json({error: 'Error reading source folder.'});
         }
 
         // Process each file
-        const processedFiles = files.filter((file) => {
-            return file.match(/\.(jpg|mp4)$/i);
-        }).map((file) => {
+        const processedFiles = files.filter((fileName) => {
+            return fileName.match(/\.(jpg|mp4)$/i);
+        }).map((fileName) => {
+            let result = {};
             let output_path = '';
-            const extension = path.extname(file);
-            const {year, month, day} = parseFileName(file);
+            const extension = path.extname(fileName);
+            const {year, month, day, hours, minutes, seconds, isBlob} = parseFileName(fileName);
 
             if (extension === '.mp4' && videoFolder) {
                 output_path = `${year} video/`;
@@ -49,19 +52,28 @@ app.post('/processFiles', (req, res) => {
                 output_path = path.join(`${year}.${month}`, `${year}.${month}.${day}`);
             }
 
-            return {
-                origin_name: file,
+            result = {
+                origin_name: fileName,
                 path: {
-                    year,
+                year,
                     month,
                     day,
+                    hours,
+                    minutes,
+                    seconds,
                     extension
-                },
-                source_path_log: path.join(sourceFolder, file),
-                source_path: sourceFolder,
-                output_path_log: path.join(outputFolder, year, output_path, file),
+            },
+                source_path_log: path.join(currentSourceFolder, fileName),
+                    source_path: currentSourceFolder,
+                output_path_log: path.join(outputFolder, year, output_path, fileName),
                 output_path: path.join(outputFolder, year, output_path),
-            };
+            }
+
+            if (isBlob) {
+                result.blob = getImageBlob(path.join(currentSourceFolder, fileName));
+            }
+
+            return result;
         });
 
         const totalFiles = processedFiles.length;
@@ -96,13 +108,17 @@ app.post('/moveFile', (req, res) => {
                     console.log(message);
 
                     // If the file already exists, generate a unique name for the destination
-                    const timestamp = new Date().toISOString().replace(/:/g, '-');
+                    // const timestamp = new Date().toISOString().replace(/:/g, '-');
+                    const filesInCurrentFolder = await fs.promises.readdir(file.output_path); // actually, we need to find files with the same name
+                    const filePostfix = filesInCurrentFolder.length + 1 < 10 ? `0${filesInCurrentFolder.length + 1}` : filesInCurrentFolder.length + 1;
                     // file.output_path_log -> //Volumes/MyPassport/test/2021/2021.02/2021.02.01/2021-02-01 01.jpg
                     const oldFileName = path.basename(file.output_path_log, path.extname(file.output_path_log));
-                    const output_path_new_filename = path.join(path.dirname(file.output_path_log), `${oldFileName}.${timestamp}${path.extname(file.output_path_log)}`); // will create a new file which is probably already there
+                    // const output_path_new_filename = path.join(path.dirname(file.output_path_log), `${oldFileName}.${timestamp}${path.extname(file.output_path_log)}`); // will create a new file which is probably already there
+                    const output_path_new_filename = path.join(path.dirname(file.output_path_log), `${oldFileName} ${filePostfix}${path.extname(file.output_path_log)}`); // will create a new file which is probably already there
 
                     const messageMoveFile = await moveFile(file, output_path_new_filename);
-                    result.message = `${message}; ${err} ${messageMoveFile}`;
+                    result.success = true;
+                    result.message = `${message}`;
                     return res.json(result);
                 }
             } else {
@@ -113,6 +129,25 @@ app.post('/moveFile', (req, res) => {
                 result.message = `${message};${err || ''};${messageMoveFile.message}`;
                 return res.json(result);
             }
+        }
+    });
+});
+
+app.post('/removeFile', (req, res) => {
+    const {file} = req.body;
+    let result = {
+        success: false
+    };
+
+    fsExtra.remove(file.source_path_log, async (err) => {
+        if (err) {
+            console.error(`Error removing file: ${err.message}`);
+            result.message = err.message;
+            return result;
+        } else {
+            console.log(`File ${file.source_path_log} removed successfully.`);
+            result.success = true;
+            return result;
         }
     });
 });
@@ -131,7 +166,7 @@ function areFilesEqual(path1, path2) {
 
 // Function to parse the file name and extract year, month, and day
 function parseFileName(fileName) {
-    const fnbasedOnDateRegex = /(?:(\d{4})-(\d{2})-(\d{2})|IMG_(\d{4})(\d{2})(\d{2})_|Collage_(\d{4})(\d{2})(\d{2})_|collage_(\d{4})(\d{2})(\d{2})_)/;
+    const fnbasedOnDateRegex = /(?:(\d{4})-(\d{2})-(\d{2})(?: (\d{2})\.(\d{2})\.(\d{2}))?|IMG_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})|Collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*|collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*)/;
     const match = fileName.match(fnbasedOnDateRegex); // fileNameBasedOnDateRegex
     let dateGroups;
 
@@ -143,10 +178,30 @@ function parseFileName(fileName) {
     }
 
     return {
-        year: dateGroups ? dateGroups[0] : '0000',
-        month: dateGroups ? dateGroups[1] : '00',
-        day: dateGroups ? dateGroups[2] : '00'
+        year: dateGroups && dateGroups[0] ? dateGroups[0] : '0000',
+        month: dateGroups && dateGroups[1] ? dateGroups[1] : '00',
+        day: dateGroups && dateGroups[2] ? dateGroups[2] : '00',
+        hours: dateGroups && dateGroups[3] ? dateGroups[3] : '00',
+        minutes: dateGroups && dateGroups[4] ? dateGroups[4] : '00',
+        seconds: dateGroups && dateGroups[5] ? dateGroups[5] : '00',
+        isBlob: match === null
     };
+}
+
+function getImageBlob(fileName) {
+    let base64Data = null;
+
+    try {
+        // Read the image file synchronously
+        const data = fs.readFileSync(fileName);
+
+        // Convert the binary data to Base64-encoded string
+        base64Data = Buffer.from(data).toString('base64');
+    } catch (err) {
+        console.error('Error reading the file:', err);
+    }
+
+    return base64Data;
 }
 
 async function moveFile(file, output_path_new_filename) {

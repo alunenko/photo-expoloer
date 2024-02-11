@@ -5,18 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fetch API Example</title>
     <style>
-        p {
+        .file {
             display: flex;
             gap: 10px;
+        }
+        .file img {
+            object-fit: contain;
         }
         input {
             border: 2px groove rgb(192, 192, 192);
         }
-        p span {
+        .file span,
+        p.error {
             padding: 5px;
             border: 1px groove rgb(192, 192, 192);
             background-color: #eee;
             flex: 1 1 50%;
+        }
+
+        p.error {
+            color: red;
+            border-color: red;
+            background-color: white;
         }
         .flex {
             margin-top: 16px;
@@ -48,20 +58,28 @@
         .actions-history .separator {
             flex: auto;
         }
-        .actions-history p {
+        .actions-history .file {
             gap: 0;
         }
         .empty span {
             flex: 1;
             justify-content: center;
         }
+        button.btn-danger {
+            background-color: red;
+            color: white;
+            border: 0 none;
+            padding: 5px;
+            margin: 5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
-<h1>Controls</h1>
+<h1>Photo explorer</h1>
 <form>
     <fieldset>
-        <legend>Setup</legend>
+        <legend>General config</legend>
         <div>
             <label for="sourceFolder">Source Folder:</label>
             <input type="text" id="sourceFolder" placeholder="/path/to/source/folder">
@@ -79,10 +97,6 @@
             <input type="checkbox" id="putBack">
         </div>
         <div>
-            <label for="preview">Preview</label>
-            <input type="checkbox" id="preview">
-        </div>
-        <div>
             <button type="button" onclick="saveConfig()">Save</button>
         </div>
     </fieldset>
@@ -95,11 +109,30 @@
 </form>
 <div class="flex">
     <div class="content">
-        <h1>Actions <span id="total_actions"></span></h1>
-        <div id="output"></div>
+        <h1>Source files <span id="total_actions"></span></h1>
+        <div class="content">
+            <form>
+                <fieldset>
+                    <legend>Config</legend>
+                    <div>
+                        <label for="preview">Preview</label>
+                        <input type="checkbox" id="preview">
+                    </div>
+                    <div>
+                        <button type="button" onclick="saveConfig()">Save</button>
+                    </div>
+                </fieldset>
+            </form>
+            <h2>Unknown date <span id="unknown_date_amount"></span></h2>
+            <div id="file_name_mismatch"></div>
+        </div>
+        <div class="content">
+            <h2>Known date <span id="known_date_amount"></span></h2>
+            <div id="file_name_match"></div>
+        </div>
     </div>
     <div class="content actions-history">
-        <h1>Actions history <span id="history_length"></span></h1>
+        <h1>History of actions with source files <span id="history_length"></span></h1>
         <button onclick="eraseActionsHistory()">Erase</button>
         <div id="actions_history">
 <!--            <p>-->
@@ -148,22 +181,59 @@
 
     function displayResults(data) {
         const sourceFolder = document.getElementById('sourceFolder').value;
-        const outputElement = document.getElementById('output');
-        const totalActions = document.getElementById('total_actions').textContent = `(${data.totalFiles})`;
-        outputElement.innerHTML = ''; // Clear previous content
+        const fileNameMatchElement = document.getElementById('file_name_match');
+        const fileNameMismatchElement = document.getElementById('file_name_mismatch');
+        const totalActions = document.getElementById('total_actions');
+        const unknownDateAmountElement = document.getElementById('unknown_date_amount');
+        const knownDateAmountElement = document.getElementById('known_date_amount');
         const buttonTextContentLR = ' => ';
         const buttonTextContentRL = ' <= ';
+
+        let unknownDateAmount = 0;
+        let knownDateAmount = 0;
+
+        totalActions.textContent = `(${data.files.length})`;
+        fileNameMatchElement.innerHTML = ''; // Clear previous content
+        fileNameMismatchElement.innerHTML = ''; // Clear previous content
 
         console.log(data);
         // Display the results in the output element
         if (data && Array.isArray(data.files)) {
             data.files.forEach((file, index) => {
-                const fileElement = document.createElement("p");
+                const fileElement = document.createElement("div");
                 const fileElementBefore = document.createElement("span");
                 const putBack = document.getElementById("putBack").checked;
+                const fileElementMiddle = document.createElement("button");
+                const fileElementAfter = document.createElement('span');
+                const outputFolder = document.getElementById("outputFolder").value;
+
+                fileElement.className = "file";
+
+                if(file.blob) {
+                    if(file.path.extension === ".mp4") {
+                        const video = document.createElement("video");
+                        video.controls = true;
+                        video.width = 320;
+                        video.height = 240;
+
+                        const source = document.createElement("source");
+                        source.type = "video/mp4";
+                        const urlBlob = `data:video/mp4;base64,${file.blob}`;
+                        source.src = urlBlob;
+
+                        video.appendChild(source);
+                        fileElement.appendChild(video);
+                    } else {
+                        const image = document.createElement("img");
+                        image.src = `data:image/png;base64,${file.blob}`;
+                        image.width = 320;
+                        image.height = 240;
+                        fileElement.appendChild(image);
+                    }
+                }
+
                 fileElementBefore.textContent = `/${file.source_path_log}`;
                 fileElement.appendChild(fileElementBefore);
-                const fileElementMiddle = document.createElement("button");
 
                 fileElementMiddle.onclick = async (event) => {
                     console.log(event);
@@ -197,15 +267,32 @@
                         }
                     } else {
                         event.target.textContent = result.error_code === 1 ? "Aborted" : "Error";
+                        const parentElement = event.target.parentNode;
+
+                        const errorElement = document.createElement("p");
+                        errorElement.textContent = result.message;
+                        errorElement.className = "error";
+
+                        const deleteSourceButton = document.createElement("button");
+                        deleteSourceButton.textContent = "Delete source?";
+                        deleteSourceButton.className = "btn-danger";
+                        deleteSourceButton.onclick = async (event) => {
+                            console.log("will be removed");
+                            console.log(data.files[index]);
+                            const result = await removeFile(data.files[index]);
+                            if(result.success) {
+                                displayResults(data);
+                            }
+                        };
+
+
+                        parentElement.appendChild(errorElement);
+                        parentElement.appendChild(deleteSourceButton);
                     }
                 };
-
                 fileElementMiddle.textContent = buttonTextContentLR;
                 fileElementMiddle.title = "Move file";
                 fileElement.appendChild(fileElementMiddle);
-
-                const fileElementAfter = document.createElement('span');
-                console.log(`file.path.year ${file.path.year}`);
 
                 if(file.path.year === "0000" || file.path.month === "00" || file.path.day === "00") {
                     fileElementAfter.innerHTML = `${sourceFolder}/`;
@@ -221,16 +308,12 @@
                         yearInput.addEventListener("change", (function(event) {
                             console.log("YEAR EVENT");
                             file.path.year = event.target.value;
-                            console.log(file);
-                            const outputFolder = document.getElementById("outputFolder").value;
-                            console.log(file, outputFolder);
 
 
                             // API call?
                             // videoFolder?condition1
-                            file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
-                            console.log(file);
-                            console.log(`YEAR ${file.output_path_log}`);
+                            // file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
+                            file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
 
                             displayResults(data);
                         }).bind(this));
@@ -278,7 +361,7 @@
 
                                 // API call?
                                 // videoFolder?condition1
-                                file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
+                                file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
                                 console.log(`MONTH ${file.output_path_log}`);
 
                                 displayResults(data);
@@ -329,7 +412,7 @@
 
                             // API call?
                             // videoFolder?condition1
-                            file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
+                            file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
                             console.log(`DAY ${file.output_path_log}`);
 
                             displayResults(data);
@@ -359,15 +442,28 @@
                     }
 
                     fileElementAfter.append(`${file.origin_name}`);
-                } else {
-                    fileElementAfter.textContent = `/${file.output_path_log}`;
-                }
 
-                fileElement.appendChild(fileElementAfter);
-                outputElement.appendChild(fileElement);
+                    unknownDateAmount++;
+                    unknownDateAmountElement.textContent = `(${unknownDateAmount})`;
+
+                    fileElement.appendChild(fileElementAfter);
+                    fileNameMismatchElement.appendChild(fileElement);
+                } else {
+                    if(file.path.extension !== ".mp4") {
+                        file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
+                    }
+
+                    fileElementAfter.textContent = `/${file.output_path_log}`;
+
+                    knownDateAmount++;
+                    knownDateAmountElement.textContent = `(${knownDateAmount})`;
+
+                    fileElement.appendChild(fileElementAfter);
+                    fileNameMatchElement.appendChild(fileElement);
+                }
             });
         } else {
-            outputElement.textContent = 'No files received from the server.';
+            fileNameMatchElement.textContent = 'No files received from the server.';
         }
     }
 
@@ -377,6 +473,36 @@
         localStorage.setItem("videoFolder", document.getElementById("videoFolder").checked);
         localStorage.setItem("putBack", document.getElementById("putBack").checked);
         localStorage.setItem("preview", document.getElementById("preview").checked);
+    }
+
+    async function removeFile(file) {
+        console.log(file);
+
+        const apiUrl = 'http://localhost:3000/removeFile';
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json', // Adjust based on your server's expectations
+                    // Add any other headers if needed
+                },
+                body: JSON.stringify({
+                    file
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            console.log(data);
+            return data; // Return the data received from the server
+        } catch (error) {
+            console.error('Error:', error);
+            throw error; // Re-throw the error so it can be caught in the calling code
+        }
     }
 
     async function moveFile(file) {
@@ -422,10 +548,9 @@
         } catch (e) {
             data = [];
         }
-        console.log("actionsHistory", data);
 
-        const outputElement = document.getElementById("actions_history");
-        outputElement.innerHTML = ''; // Clear previous content
+        const actionsHistoryOutputElement = document.getElementById("actions_history"); // actionsHistoryOutputElement
+        actionsHistoryOutputElement.innerHTML = ''; // Clear previous content
         const buttonTextContentLR = ' => ';
 
         const historyLength = document.getElementById('history_length').textContent = `(${data.length})`;
@@ -450,7 +575,7 @@
                 fileElementAfter.textContent = `/${file.output_path_log}`;
                 fileElement.appendChild(fileElementAfter);
 
-                outputElement.appendChild(fileElement);
+                actionsHistoryOutputElement.appendChild(fileElement);
             });
         } else {
             const fileElement = document.createElement("p");
@@ -460,7 +585,7 @@
             fileElementBefore.textContent = "There is no actions history.";
             fileElement.appendChild(fileElementBefore);
 
-            outputElement.appendChild(fileElement);
+            actionsHistoryOutputElement.appendChild(fileElement);
         }
     }
 
