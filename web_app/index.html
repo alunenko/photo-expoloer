@@ -99,13 +99,18 @@
             <label for="putBack">"Put back" option</label>
             <input type="checkbox" id="putBack">
         </div>
+    </fieldset>
+    <fieldset>
+        <legend>Unknown date images</legend>
         <div>
-            <button type="button" onclick="saveConfig()">Save</button>
+            <label for="preview">Preview</label>
+            <input type="checkbox" id="preview">
         </div>
     </fieldset>
     <fieldset>
         <legend>Actions</legend>
         <div>
+            <button type="button" onclick="saveConfig()">Save config</button>
             <button type="button" onclick="fetchFiles()">Fetch Files</button>
         </div>
     </fieldset>
@@ -114,18 +119,6 @@
     <div class="content">
         <h1>Source files <span id="total_actions"></span></h1>
         <div class="content">
-            <form>
-                <fieldset>
-                    <legend>Config</legend>
-                    <div>
-                        <label for="preview">Preview</label>
-                        <input type="checkbox" id="preview">
-                    </div>
-                    <div>
-                        <button type="button" onclick="saveConfig()">Save</button>
-                    </div>
-                </fieldset>
-            </form>
             <h2>Unknown date <span id="unknown_date_amount"></span></h2>
             <div id="file_name_mismatch"></div>
         </div>
@@ -302,8 +295,6 @@
                     fileElementMiddle.title = "Move file";
                     fileElement.appendChild(fileElementMiddle);
 
-                    fileElementAfter.innerHTML = `${sourceFolder}1`;
-
                     // YEAR
                     const year1 = document.createElement('span');
                     year1.id = `new_year_${index}_${internalYearIndex}`;
@@ -349,8 +340,6 @@
                     fileElementAfter.append(`/`);
 
                     fileElementAfter.append(`${file.origin_name}`);
-                    unknownDateAmount++;
-                    unknownDateAmountElement.textContent = `(${unknownDateAmount})`;
                     fileElement.appendChild(fileElementAfter);
                     fileNameMismatchElement.appendChild(fileElement);
 
@@ -358,8 +347,6 @@
                         file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
                     }
                     fileElementAfter.textContent = `${file.output_path_log}`;
-                    knownDateAmount++;
-                    knownDateAmountElement.textContent = `(${knownDateAmount})`;
                     fileElement.appendChild(fileElementAfter);
                     fileNameMatchElement.appendChild(fileElement);
 
@@ -479,6 +466,20 @@
                         }).bind(this));
                     };
                     fileElement.appendChild(fileElementLast);
+
+                    if(file.path.year === "0000" || file.path.month === "00" || file.path.day === "00") {
+                        unknownDateAmount++;
+                        unknownDateAmountElement.textContent = `(${unknownDateAmount})`;
+
+                        fileElement.appendChild(fileElementAfter);
+                        fileNameMismatchElement.appendChild(fileElement);
+                    } else {
+                        knownDateAmount++;
+                        knownDateAmountElement.textContent = `(${knownDateAmount})`;
+
+                        fileElement.appendChild(fileElementAfter);
+                        fileNameMatchElement.appendChild(fileElement);
+                    }
                 })(file);
             });
         } else {
