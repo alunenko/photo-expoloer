@@ -200,267 +200,305 @@
         // Display the results in the output element
         if (data && Array.isArray(data.files)) {
             data.files.forEach((file, index) => {
-                const fileElement = document.createElement("div");
-                const fileElementBefore = document.createElement("span");
-                const putBack = document.getElementById("putBack").checked;
-                const fileElementMiddle = document.createElement("button");
-                const fileElementAfter = document.createElement('span');
-                const outputFolder = document.getElementById("outputFolder").value;
+                (function(file){
+                    const fileElement = document.createElement("div");
+                    const fileElementBefore = document.createElement("span");
+                    const putBack = document.getElementById("putBack").checked;
+                    const fileElementMiddle = document.createElement("button");
+                    const fileElementAfter = document.createElement('span');
+                    const outputFolder = document.getElementById("outputFolder").value;
+                    let internalYearIndex = 0;
+                    let internalMonthIndex = 0;
 
-                fileElement.className = "file";
+                    fileElement.className = "file";
 
-                if(file.blob) {
-                    if(file.path.extension === ".mp4") {
-                        const video = document.createElement("video");
-                        video.controls = true;
-                        video.width = 320;
-                        video.height = 240;
+                    if(file.blob) {
+                        if(file.path.extension === ".mp4") {
+                            const video = document.createElement("video");
+                            video.controls = true;
+                            video.width = 320;
+                            video.height = 240;
 
-                        const source = document.createElement("source");
-                        source.type = "video/mp4";
-                        const urlBlob = `data:video/mp4;base64,${file.blob}`;
-                        source.src = urlBlob;
+                            const source = document.createElement("source");
+                            source.type = "video/mp4";
+                            const urlBlob = `data:video/mp4;base64,${file.blob}`;
+                            source.src = urlBlob;
 
-                        video.appendChild(source);
-                        fileElement.appendChild(video);
-                    } else {
-                        const image = document.createElement("img");
-                        image.src = `data:image/png;base64,${file.blob}`;
-                        image.width = 320;
-                        image.height = 240;
-                        fileElement.appendChild(image);
-                    }
-                }
-
-                fileElementBefore.textContent = `/${file.source_path_log}`;
-                fileElement.appendChild(fileElementBefore);
-
-                fileElementMiddle.onclick = async (event) => {
-                    console.log(event);
-                    const buttonStateBeforeMove = event.target.textContent;
-                    event.target.textContent = "Moving...";
-                    event.target.disabled = true;
-                    const result = await moveFile(data.files[index]);
-
-                    if(result.success) {
-                        event.target.removeAttribute("disabled");
-
-                        if(putBack) {
-                            event.target.textContent = buttonStateBeforeMove === buttonTextContentLR ? buttonTextContentRL : buttonTextContentLR;
-                            const output_path_log = data.files[index].output_path_log;
-                            data.files[index].output_path_log = data.files[index].source_path_log;
-                            data.files[index].source_path_log = output_path_log;
+                            video.appendChild(source);
+                            fileElement.appendChild(video);
                         } else {
-                            let actionsHistory = localStorage.getItem("actionsHistory");
-                            try {
-                                actionsHistory = actionsHistory ? JSON.parse(actionsHistory) : [];
-                            } catch (e) {
-                                actionsHistory = [];
-                            }
-
-                            actionsHistory.push(data.files[index]);
-                            localStorage.setItem("actionsHistory", JSON.stringify(actionsHistory));
-                            showActionsHistory();
-
-                            data.files.splice(index, 1);
-                            displayResults(data);
+                            const image = document.createElement("img");
+                            image.src = `data:image/png;base64,${file.blob}`;
+                            image.width = 320;
+                            image.height = 240;
+                            fileElement.appendChild(image);
                         }
-                    } else {
-                        event.target.textContent = result.error_code === 1 ? "Aborted" : "Error";
-                        const parentElement = event.target.parentNode;
+                    }
 
-                        const errorElement = document.createElement("p");
-                        errorElement.textContent = result.message;
-                        errorElement.className = "error";
+                    fileElementBefore.textContent = `/${file.source_path_log}`;
+                    fileElement.appendChild(fileElementBefore);
 
-                        const deleteSourceButton = document.createElement("button");
-                        deleteSourceButton.textContent = "Delete source?";
-                        deleteSourceButton.className = "btn-danger";
-                        deleteSourceButton.onclick = async (event) => {
-                            console.log("will be removed");
-                            console.log(data.files[index]);
-                            const result = await removeFile(data.files[index]);
-                            if(result.success) {
+                    fileElementMiddle.onclick = async (event) => {
+                        console.log(event);
+                        const buttonStateBeforeMove = event.target.textContent;
+                        event.target.textContent = "Moving...";
+                        event.target.disabled = true;
+                        const result = await moveFile(data.files[index]);
+
+                        if(result.success) {
+                            event.target.removeAttribute("disabled");
+
+                            if(putBack) {
+                                event.target.textContent = buttonStateBeforeMove === buttonTextContentLR ? buttonTextContentRL : buttonTextContentLR;
+                                const output_path_log = data.files[index].output_path_log;
+                                data.files[index].output_path_log = data.files[index].source_path_log;
+                                data.files[index].source_path_log = output_path_log;
+                            } else {
+                                let actionsHistory = localStorage.getItem("actionsHistory");
+                                try {
+                                    actionsHistory = actionsHistory ? JSON.parse(actionsHistory) : [];
+                                } catch (e) {
+                                    actionsHistory = [];
+                                }
+
+                                actionsHistory.push(data.files[index]);
+                                localStorage.setItem("actionsHistory", JSON.stringify(actionsHistory));
+                                showActionsHistory();
+
+                                data.files.splice(index, 1);
                                 displayResults(data);
                             }
-                        };
+                        } else {
+                            event.target.textContent = result.error_code === 1 ? "Aborted" : "Error";
+                            const parentElement = event.target.parentNode;
+
+                            const errorElement = document.createElement("p");
+                            errorElement.textContent = result.message;
+                            errorElement.className = "error";
+
+                            const deleteSourceButton = document.createElement("button");
+                            deleteSourceButton.textContent = "Delete source?";
+                            deleteSourceButton.className = "btn-danger";
+                            deleteSourceButton.onclick = async (event) => {
+                                console.log("will be removed");
+                                console.log(data.files[index]);
+                                const result = await removeFile(data.files[index]);
+                                if(result.success) {
+                                    displayResults(data);
+                                }
+                            };
 
 
-                        parentElement.appendChild(errorElement);
-                        parentElement.appendChild(deleteSourceButton);
-                    }
-                };
-                fileElementMiddle.textContent = buttonTextContentLR;
-                fileElementMiddle.title = "Move file";
-                fileElement.appendChild(fileElementMiddle);
+                            parentElement.appendChild(errorElement);
+                            parentElement.appendChild(deleteSourceButton);
+                        }
+                    };
+                    fileElementMiddle.textContent = buttonTextContentLR;
+                    fileElementMiddle.title = "Move file";
+                    fileElement.appendChild(fileElementMiddle);
 
-                if(file.path.year === "0000" || file.path.month === "00" || file.path.day === "00") {
-                    fileElementAfter.innerHTML = `${sourceFolder}/`;
+                    fileElementAfter.addEventListener("click", function(event) {
+                        if(event.target.tagName === "INPUT") {
+                            event.stopPropagation();
+                        } else {
+                            // Parse here with span and inputs as for the unknown date
+                            console.log("EDIT");
+                            const x = event.target.innerHTML;
+                            event.target.innerHTML = '';
+                            const b = document.createElement("input");
+                            b.placeholder = "test";
+                            b.value = x;
+                            b.addEventListener("change", function(event) {
+                                console.log("CHANGE");
+                                console.log(file.output_path_log);
+                                console.log(event.target.value);
+                                file.output_path_log = event.target.value; // WRONG
+                                file.path.seconds = "7777"; // output_path_log based on path(year, month, day, hours, minutes, seconds)
+                                console.log(file.output_path_log);
+                                displayResults(data);
+                            });
 
-                    if(file.path.year === "0000") {
-                        const yearInput = document.createElement("input");
-                        yearInput.value = file.path.year;
-                        yearInput.placeholder = "Year";
-                        yearInput.id = `new_year_${index}`;
-                        yearInput.required = true;
-                        yearInput.minLength = 4;
-                        yearInput.maxLength = 4;
-                        yearInput.addEventListener("change", (function(event) {
-                            console.log("YEAR EVENT");
-                            file.path.year = event.target.value;
+                            event.target.appendChild(b);
+                        }
+
+                    });
+
+                    if(file.path.year === "0000" || file.path.month === "00" || file.path.day === "00") {
+                        fileElementAfter.innerHTML = `${sourceFolder}/`;
+
+                        if(file.path.year === "0000") {
+                            const yearInput = document.createElement("input");
+                            yearInput.value = file.path.year;
+                            yearInput.placeholder = "Year";
+                            yearInput.id = `new_year_${index}`;
+                            yearInput.required = true;
+                            yearInput.minLength = 4;
+                            yearInput.maxLength = 4;
+                            yearInput.addEventListener("change", (function(event) {
+                                console.log("YEAR EVENT");
+                                file.path.year = event.target.value;
 
 
-                            // API call?
-                            // videoFolder?condition1
-                            // file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
-                            file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
+                                // API call?
+                                // videoFolder?condition1
+                                // file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
+                                file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
 
-                            displayResults(data);
-                        }).bind(this));
+                                displayResults(data);
+                            }).bind(this));
 
-                        fileElementAfter.appendChild(yearInput);
-                        fileElementAfter.append(`/`);
-                    } else {
-                        const year = document.createElement('span');
-                        year.id = `new_year_${index}_month`;
-                        year.textContent = file.path.year;
-                        fileElementAfter.append(year);
-                        fileElementAfter.append(`/`);
-                    }
+                            fileElementAfter.appendChild(yearInput);
+                            fileElementAfter.append(`/`);
+                        } else {
+                            const year = document.createElement('span');
+                            year.id = `new_year_${index}_${internalYearIndex}`;
+                            internalYearIndex++;
+                            year.textContent = file.path.year;
+                            fileElementAfter.append(year);
+                            fileElementAfter.append(`/`);
+                        }
 
-                    if(file.path.month === "00") {
-                        const year = document.createElement('span');
-                        year.id = `new_year_${index}_month`;
-                        year.textContent = file.path.year;
-                        fileElementAfter.append(year);
+                        if(file.path.month === "00") {
+                            const year = document.createElement('span');
+                            year.id = `new_year_${index}_${internalYearIndex}`;
+                            internalYearIndex++;
+                            year.textContent = file.path.year;
+                            fileElementAfter.append(year);
 
-                        fileElementAfter.append(`.`);
+                            fileElementAfter.append(`.`);
 
-                        const monthInput = document.createElement("input");
-                        monthInput.placeholder = "Month";
-                        monthInput.id = `new_month_${index}`;
-                        monthInput.required = true;
-                        monthInput.minLength = 1;
-                        monthInput.maxLength = 2;
-                        monthInput.pattern = "^(0[1-9]|1[0-2])$";
-                        monthInput.value = file.path.month;
-                        fileElementAfter.append(monthInput);
+                            const monthInput = document.createElement("input");
+                            monthInput.placeholder = "Month";
+                            monthInput.id = `new_month_${index}`;
+                            monthInput.required = true;
+                            monthInput.minLength = 1;
+                            monthInput.maxLength = 2;
+                            monthInput.pattern = "^(0[1-9]|1[0-2])$";
+                            monthInput.value = file.path.month;
+                            fileElementAfter.append(monthInput);
 
-                        fileElementAfter.append(`/`);
+                            fileElementAfter.append(`/`);
 
-                        monthInput.addEventListener("change", (function(event) {
-                            console.log("MONTH EVENT");
-                            file.path.month = event.target.value;
+                            monthInput.addEventListener("change", (function(event) {
+                                console.log("MONTH EVENT");
+                                file.path.month = event.target.value;
 
-                            if (!new RegExp("^(0[1-9]|1[0-2])$").test(event.target.value)) {
-                                alert("Invalid input. Please enter a number from 01 to 12.");
-                                // Optionally, you can reset the value to a default or clear it.
-                                monthInput.value = "00";
-                            } else {
+                                if (!new RegExp("^(0[1-9]|1[0-2])$").test(event.target.value)) {
+                                    alert("Invalid input. Please enter a number from 01 to 12.");
+                                    // Optionally, you can reset the value to a default or clear it.
+                                    monthInput.value = "00";
+                                } else {
+                                    const outputFolder = document.getElementById("outputFolder").value;
+
+                                    // API call?
+                                    // videoFolder?condition1
+                                    file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
+                                    console.log(`MONTH ${file.output_path_log}`);
+
+                                    displayResults(data);
+                                }
+                            }).bind(this));
+                        } else {
+                            const year = document.createElement('span');
+                            year.id = `new_year_${index}_${internalYearIndex}`;
+                            internalYearIndex++;
+                            year.textContent = file.path.year;
+                            fileElementAfter.append(year);
+
+                            fileElementAfter.append(`.`);
+
+                            const month = document.createElement('span');
+                            month.id = `new_month_${index}_${internalMonthIndex}`;
+                            internalMonthIndex++;
+                            month.textContent = file.path.month;
+                            fileElementAfter.append(month);
+                            fileElementAfter.append(`/`);
+                        }
+
+                        if(file.path.day === "00") {
+                            const year = document.createElement('span');
+                            year.id = `new_year_${index}_${internalYearIndex}`;
+                            internalYearIndex++;
+                            year.textContent = file.path.year;
+                            fileElementAfter.append(year);
+
+                            fileElementAfter.append(`.`);
+
+                            const month = document.createElement('span');
+                            month.id = `new_month_${index}_${internalMonthIndex}`;
+                            internalMonthIndex++;
+                            month.textContent = file.path.month;
+                            fileElementAfter.append(month);
+
+                            fileElementAfter.append(`.`);
+
+                            const dayInput = document.createElement("input");
+                            dayInput.id = `new_day_${index}`;
+                            dayInput.placeholder = "Day";
+                            dayInput.value = file.path.day;
+                            fileElementAfter.append(dayInput);
+
+                            fileElementAfter.append(`/`);
+
+                            dayInput.addEventListener("change", (function(event) {
+                                console.log("DAY EVENT");
+                                file.path.day = event.target.value;
                                 const outputFolder = document.getElementById("outputFolder").value;
 
                                 // API call?
                                 // videoFolder?condition1
                                 file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
-                                console.log(`MONTH ${file.output_path_log}`);
+                                console.log(`DAY ${file.output_path_log}`);
 
                                 displayResults(data);
-                            }
-                        }).bind(this));
+                            }).bind(this));
+                        }  else {
+                            const year = document.createElement('span');
+                            year.id = `new_year_${index}_${internalYearIndex}`;
+                            internalYearIndex++;
+                            year.textContent = file.path.year;
+                            fileElementAfter.append(year);
+
+                            fileElementAfter.append(`.`);
+
+                            const month = document.createElement('span');
+                            month.id = `new_month_${index}_${internalMonthIndex}`;
+                            internalMonthIndex++;
+                            month.textContent = file.path.month;
+                            fileElementAfter.append(month);
+                            fileElementAfter.append(`/`);
+
+                            fileElementAfter.append(`.`);
+
+                            const day = document.createElement('span');
+                            day.id = `new_day_${index}`;
+                            day.textContent = file.path.month;
+                            fileElementAfter.append(day);
+
+                            fileElementAfter.append(`/`);
+                        }
+
+                        fileElementAfter.append(`${file.origin_name}`);
+
+                        unknownDateAmount++;
+                        unknownDateAmountElement.textContent = `(${unknownDateAmount})`;
+
+                        fileElement.appendChild(fileElementAfter);
+                        fileNameMismatchElement.appendChild(fileElement);
                     } else {
-                        const year = document.createElement('span');
-                        year.id = `new_year_${index}_month`;
-                        year.textContent = file.path.year;
-                        fileElementAfter.append(year);
-
-                        fileElementAfter.append(`.`);
-
-                        const month = document.createElement('span');
-                        month.id = `new_year_${index}_month`;
-                        month.textContent = file.path.month;
-                        fileElementAfter.append(month);
-                        fileElementAfter.append(`/`);
-                    }
-
-                    if(file.path.day === "00") {
-                        const year = document.createElement('span');
-                        year.id = `new_year_${index}_month`;
-                        year.textContent = file.path.year;
-                        fileElementAfter.append(year);
-
-                        fileElementAfter.append(`.`);
-
-                        const month = document.createElement('span');
-                        month.id = `new_year_${index}_month`;
-                        month.textContent = file.path.month;
-                        fileElementAfter.append(month);
-
-                        fileElementAfter.append(`.`);
-
-                        const dayInput = document.createElement("input");
-                        dayInput.id = `new_year_month_${file.path.day}_${index}`;
-                        dayInput.placeholder = "Day";
-                        dayInput.value = file.path.day;
-                        fileElementAfter.append(dayInput);
-
-                        fileElementAfter.append(`/`);
-
-                        dayInput.addEventListener("change", (function(event) {
-                            console.log("DAY EVENT");
-                            file.path.day = event.target.value;
-                            const outputFolder = document.getElementById("outputFolder").value;
-
-                            // API call?
-                            // videoFolder?condition1
+                        if(file.path.extension !== ".mp4") {
                             file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
-                            console.log(`DAY ${file.output_path_log}`);
+                        }
 
-                            displayResults(data);
-                        }).bind(this));
-                    }  else {
-                        const year = document.createElement('span');
-                        year.id = `new_year_${index}_month`;
-                        year.textContent = file.path.year;
-                        fileElementAfter.append(year);
+                        fileElementAfter.textContent = `${file.output_path_log}`;
 
-                        fileElementAfter.append(`.`);
+                        knownDateAmount++;
+                        knownDateAmountElement.textContent = `(${knownDateAmount})`;
 
-                        const month = document.createElement('span');
-                        month.id = `new_year_${index}_month`;
-                        month.textContent = file.path.month;
-                        fileElementAfter.append(month);
-                        fileElementAfter.append(`/`);
-
-                        fileElementAfter.append(`.`);
-
-                        const day = document.createElement('span');
-                        day.id = `new_year_${index}_month`;
-                        day.textContent = file.path.month;
-                        fileElementAfter.append(day);
-
-                        fileElementAfter.append(`/`);
+                        fileElement.appendChild(fileElementAfter);
+                        fileNameMatchElement.appendChild(fileElement);
                     }
-
-                    fileElementAfter.append(`${file.origin_name}`);
-
-                    unknownDateAmount++;
-                    unknownDateAmountElement.textContent = `(${unknownDateAmount})`;
-
-                    fileElement.appendChild(fileElementAfter);
-                    fileNameMismatchElement.appendChild(fileElement);
-                } else {
-                    if(file.path.extension !== ".mp4") {
-                        file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
-                    }
-
-                    fileElementAfter.textContent = `/${file.output_path_log}`;
-
-                    knownDateAmount++;
-                    knownDateAmountElement.textContent = `(${knownDateAmount})`;
-
-                    fileElement.appendChild(fileElementAfter);
-                    fileNameMatchElement.appendChild(fileElement);
-                }
+                })(file);
             });
         } else {
             fileNameMatchElement.textContent = 'No files received from the server.';
