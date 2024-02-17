@@ -350,11 +350,24 @@
                     fileElement.appendChild(fileElementAfter);
                     fileNameMatchElement.appendChild(fileElement);
 
+                    if(file.path.year === "0000" || file.path.month === "00" || file.path.day === "00") {
+                        unknownDateAmount++;
+                        unknownDateAmountElement.textContent = `(${unknownDateAmount})`;
+
+                        fileElement.appendChild(fileElementAfter);
+                        fileNameMismatchElement.appendChild(fileElement);
+                    } else {
+                        knownDateAmount++;
+                        knownDateAmountElement.textContent = `(${knownDateAmount})`;
+
+                        fileElement.appendChild(fileElementAfter);
+                        fileNameMatchElement.appendChild(fileElement);
+                    }
 
                     const fileElementDoneEdit = document.createElement("button");
                     fileElementDoneEdit.textContent = "Done";
                     fileElementDoneEdit.className = "btn hide";
-                    fileElementDoneEdit.id = "edit_done";
+                    fileElementDoneEdit.id = `edit_done_${index}`;
                     fileElementDoneEdit.onclick = async (event) => {
                         event.stopPropagation();
                         console.log("DONE edit");
@@ -368,8 +381,14 @@
                     fileElementLast.textContent = "/";
                     fileElementLast.onclick = async (event) => {
                         console.log("EDiT");
-                        const fileElementDoneEdit2 = document.getElementById("edit_done");
-                        fileElementDoneEdit2.classList.remove("hide");
+                        event
+                            .target
+                            .parentNode
+                            .querySelectorAll("button")
+                            .forEach(button => {
+                                if(button.id.includes("edit_done_")) {button.classList.remove("hide")}
+                            })
+                        ;
 
                         fileElementAfter.innerHTML = `${sourceFolder}/`;
 
@@ -466,20 +485,6 @@
                         }).bind(this));
                     };
                     fileElement.appendChild(fileElementLast);
-
-                    if(file.path.year === "0000" || file.path.month === "00" || file.path.day === "00") {
-                        unknownDateAmount++;
-                        unknownDateAmountElement.textContent = `(${unknownDateAmount})`;
-
-                        fileElement.appendChild(fileElementAfter);
-                        fileNameMismatchElement.appendChild(fileElement);
-                    } else {
-                        knownDateAmount++;
-                        knownDateAmountElement.textContent = `(${knownDateAmount})`;
-
-                        fileElement.appendChild(fileElementAfter);
-                        fileNameMatchElement.appendChild(fileElement);
-                    }
                 })(file);
             });
         } else {
