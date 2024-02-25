@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fetch API Example</title>
     <style>
+        :root {
+            --minimumMargin: 5mm;
+            --a4-side-size-sort: 210mm;
+            --a4-side-size-wide: 297mm;
+        }
+        /*region: page*/
+        .page {
+            display: none;
+        }
+        .page.active {
+            display: block;
+        }
+        /* endregion: page */
+        /* region: explorer */
         .file {
             display: flex;
             gap: 10px;
@@ -76,71 +90,193 @@
         .btn.hide {
             display: none;
         }
+        /* endregion: explorer */
+        /*region: calendar*/
+        .flex .print {
+            justify-content: center;
+        }
+
+        .title {
+            text-align: center;
+        }
+        .calendar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .calendar > div {
+            width: calc((100% - (10px * 2) * 5) / 7); /* 100% / gap 10px from 2 sides for 5 items in middle */
+            flex: 1 1 auto;
+            height: 200px;
+            white-space: nowrap;
+        }
+        .month-cell {
+            position: relative;
+            border: 2px solid black;
+            background-color: white;
+        }
+        .month-cell img {
+            object-fit: cover;
+            width: 100%;
+            height: 200px; /* related to .calendar > div { */
+            margin-right: 5px;
+        }
+        .month-cell .m-year {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: white;
+        }
+        .month-cell .m-day,
+        .m-no-photo-space .m-day {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            z-index: 2;
+            color: white;
+            font-size: 72px;
+            font-weight: bold;
+            mix-blend-mode: difference;
+        }
+        .m-white-space {
+            border: 2px solid white;
+            overflow: hidden;
+        }
+        .m-no-photo-space {
+            position: relative;
+            border: 2px solid black;
+            overflow: hidden;
+            background-color: white;
+        }
+        .amount-photos {
+            padding: 3px;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            z-index: 2;
+            background-color: lightskyblue;
+            border-radius: 100%;
+        }
+
+        .a4-size {
+            margin: var(--minimumMargin);
+            background-color: #ffffff; /* White background color */
+            border: 1px solid #000000; /* Black border for visualization */
+            box-sizing: border-box; /* Ensure border is included in the dimensions */
+        }
+        .a4-size.m-album {
+            width: calc(var(--a4-side-size-wide) - var(--minimumMargin) * 2);
+            height: calc(var(--a4-side-size-sort) - var(--minimumMargin) * 2);
+        }
+        .a4-size.m-portrait {
+            width: calc(var(--a4-side-size-sort) - var(--minimumMargin) * 2);
+            height: calc(var(--a4-side-size-wide) - var(--minimumMargin) * 2);
+        }
+        @media print {
+            body * {
+                margin: 0;
+                display: none;
+            }
+            body .print, body .print * {display: block;}
+        }
+        /*endregion: calendar*/
     </style>
 </head>
 <body>
-<h1>Photo explorer</h1>
-<form>
-    <fieldset>
-        <legend>General config</legend>
-        <div>
-            <label for="sourceFolder">Source Folder:</label>
-            <input type="text" id="sourceFolder" placeholder="/path/to/source/folder">
-        </div>
-        <div>
-            <label for="outputFolder">Output Folder:</label>
-            <input type="text" id="outputFolder" placeholder="/path/to/output/folder">
-        </div>
-        <div>
-            <label for="videoFolder">Put all videos to single folder?</label>
-            <input type="checkbox" id="videoFolder">
-        </div>
-        <div>
-            <label for="putBack">"Put back" option</label>
-            <input type="checkbox" id="putBack">
-        </div>
-    </fieldset>
-    <fieldset>
-        <legend>Unknown date images</legend>
-        <div>
-            <label for="preview">Preview</label>
-            <input type="checkbox" id="preview">
-        </div>
-    </fieldset>
-    <fieldset>
-        <legend>Actions</legend>
-        <div>
-            <button type="button" onclick="saveConfig()">Save config</button>
-            <button type="button" onclick="fetchFiles()">Fetch Files</button>
-        </div>
-    </fieldset>
-</form>
-<div class="flex">
-    <div class="content">
-        <h1>Source files <span id="total_actions"></span></h1>
+<div id="home" class="page active">
+    <h1>Home</h1>
+    <p><a href="#" onclick="navigate('explorer')">explorer</a></p>
+    <p><a href="#" onclick="navigate('calendar')">calendar</a></p>
+</div>
+<div id="explorer" class="page">
+    <p><a href="#" onclick="navigate('home')">home</a></p>
+    <h1>Photo explorer</h1>
+    <form>
+        <fieldset>
+            <legend>General config</legend>
+            <div>
+                <label for="sourceFolder">Source Folder:</label>
+                <input type="text" id="sourceFolder" placeholder="/path/to/source/folder">
+            </div>
+            <div>
+                <label for="outputFolder">Output Folder:</label>
+                <input type="text" id="outputFolder" placeholder="/path/to/output/folder">
+            </div>
+            <div>
+                <label for="videoFolder">Put all videos to single folder?</label>
+                <input type="checkbox" id="videoFolder">
+            </div>
+            <div>
+                <label for="putBack">"Put back" option</label>
+                <input type="checkbox" id="putBack">
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend>Unknown date images</legend>
+            <div>
+                <label for="preview">Preview</label>
+                <input type="checkbox" id="preview">
+            </div>
+        </fieldset>
+        <fieldset>
+            <legend>Actions</legend>
+            <div>
+                <button type="button" onclick="saveConfig()">Save config</button>
+                <button type="button" onclick="fetchFiles()">Fetch Files</button>
+            </div>
+        </fieldset>
+    </form>
+    <div class="flex">
         <div class="content">
-            <h2>Unknown date <span id="unknown_date_amount"></span></h2>
-            <div id="file_name_mismatch"></div>
+            <h1>Source files <span id="total_actions"></span></h1>
+            <div class="content">
+                <h2>Unknown date <span id="unknown_date_amount"></span></h2>
+                <div id="file_name_mismatch"></div>
+            </div>
+            <div class="content">
+                <h2>Known date <span id="known_date_amount"></span></h2>
+                <div id="file_name_match"></div>
+            </div>
         </div>
-        <div class="content">
-            <h2>Known date <span id="known_date_amount"></span></h2>
-            <div id="file_name_match"></div>
+        <div class="content actions-history">
+            <h1>History of actions with source files <span id="history_length"></span></h1>
+            <button onclick="eraseActionsHistory()">Erase</button>
+            <div id="actions_history">
+                <!--            <p>-->
+                <!--                <span>//Users/alef/Library/CloudStorage/Dropbox/Camera Uploads/2021-02-01 01 copy.jpg</span>-->
+                <!--                <span> =&gt; </span>-->
+                <!--                <span>//Volumes/MyPassport/test/2021/2021.02/2021.02.01/2021-02-01 01 copy.jpg</span>-->
+                <!--            </p>-->
+            </div>
         </div>
     </div>
-    <div class="content actions-history">
-        <h1>History of actions with source files <span id="history_length"></span></h1>
-        <button onclick="eraseActionsHistory()">Erase</button>
-        <div id="actions_history">
-<!--            <p>-->
-<!--                <span>//Users/alef/Library/CloudStorage/Dropbox/Camera Uploads/2021-02-01 01 copy.jpg</span>-->
-<!--                <span> =&gt; </span>-->
-<!--                <span>//Volumes/MyPassport/test/2021/2021.02/2021.02.01/2021-02-01 01 copy.jpg</span>-->
-<!--            </p>-->
+</div>
+<div id="calendar" class="page">
+    <p><a href="#" onclick="navigate('home')">home</a></p>
+    <h1>Calendar</h1>
+    <form>
+        <fieldset>
+            <legend>Pick a date</legend>
+            <label><input type="text" id="calendar-month" placeholder="month"/></label>
+            <button type="button" onclick="generateCalendar()">Generate</button>
+        </fieldset>
+    </form>
+    <div class="flex">
+        <div id="print" class="print a4-size m-album">
+            <div id="calendar-content" class="calendar">
+                <p>No data yet</p>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
+    const globalData = {};
+    const arrangedData = {};
+    /* region Explorer */
     function fetchFiles() {
         const sourceFolder = document.getElementById('sourceFolder').value;
         const outputFolder = document.getElementById('outputFolder').value;
@@ -166,16 +302,17 @@
                 }
                 return response.json();
             })
-            .then(data => {
+            .then(fetchFilesResponse => {
                 // Handle the data received from the server
-                displayResults(data);
+                Object.assign(globalData, fetchFilesResponse);
+                displayResults();
             })
             .catch(error => {
                 console.error('Error:', error);
             });
     }
 
-    function displayResults(data) {
+    function displayResults() {
         const sourceFolder = document.getElementById('sourceFolder').value;
         const fileNameMatchElement = document.getElementById('file_name_match');
         const fileNameMismatchElement = document.getElementById('file_name_mismatch');
@@ -188,14 +325,14 @@
         let unknownDateAmount = 0;
         let knownDateAmount = 0;
 
-        totalActions.textContent = `(${data.files.length})`;
+        totalActions.textContent = `(${globalData.files.length})`;
         fileNameMatchElement.innerHTML = ''; // Clear previous content
         fileNameMismatchElement.innerHTML = ''; // Clear previous content
 
-        console.log(data);
+        console.log(globalData);
         // Display the results in the output element
-        if (data && Array.isArray(data.files)) {
-            data.files.forEach((file, index) => {
+        if (globalData && Array.isArray(globalData.files)) {
+            globalData.files.forEach((file, index) => {
                 (function(file){
                     const fileElement = document.createElement("div");
                     const fileElementBefore = document.createElement("span");
@@ -241,16 +378,16 @@
                         const buttonStateBeforeMove = event.target.textContent;
                         event.target.textContent = "Moving...";
                         event.target.disabled = true;
-                        const result = await moveFile(data.files[index]);
+                        const result = await moveFile(globalData.files[index]);
 
                         if(result.success) {
                             event.target.removeAttribute("disabled");
 
                             if(putBack) {
                                 event.target.textContent = buttonStateBeforeMove === buttonTextContentLR ? buttonTextContentRL : buttonTextContentLR;
-                                const output_path_log = data.files[index].output_path_log;
-                                data.files[index].output_path_log = data.files[index].source_path_log;
-                                data.files[index].source_path_log = output_path_log;
+                                const output_path_log = globalData.files[index].output_path_log;
+                                globalData.files[index].output_path_log = globalData.files[index].source_path_log;
+                                globalData.files[index].source_path_log = output_path_log;
                             } else {
                                 let actionsHistory = localStorage.getItem("actionsHistory");
                                 try {
@@ -259,12 +396,12 @@
                                     actionsHistory = [];
                                 }
 
-                                actionsHistory.push(data.files[index]);
+                                actionsHistory.push(globalData.files[index]);
                                 localStorage.setItem("actionsHistory", JSON.stringify(actionsHistory));
                                 showActionsHistory();
 
-                                data.files.splice(index, 1);
-                                displayResults(data);
+                                globalData.files.splice(index, 1);
+                                displayResults();
                             }
                         } else {
                             event.target.textContent = result.error_code === 1 ? "Aborted" : "Error";
@@ -279,10 +416,10 @@
                             deleteSourceButton.className = "btn-danger";
                             deleteSourceButton.onclick = async (event) => {
                                 console.log("will be removed");
-                                console.log(data.files[index]);
-                                const result = await removeFile(data.files[index]);
+                                console.log(globalData.files[index]);
+                                const result = await removeFile(globalData.files[index]);
                                 if(result.success) {
-                                    displayResults(data);
+                                    displayResults();
                                 }
                             };
 
@@ -374,7 +511,7 @@
                         console.log(file);
                         event.target.classList.add("hide");
 
-                        displayResults(data);
+                        displayResults();
                     };
                     fileElement.appendChild(fileElementDoneEdit);
 
@@ -408,8 +545,6 @@
                             // videoFolder?condition1
                             // file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.origin_name}`;
                             file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
-
-                            //displayResults(data);
                         }).bind(this));
                         fileElementAfter.appendChild(yearInput);
                         fileElementAfter.append(`/`);
@@ -446,8 +581,6 @@
                                 // videoFolder?condition1
                                 file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
                                 console.log(`MONTH ${file.output_path_log}`);
-
-                                //displayResults(data);
                             }
                         }).bind(this));
 
@@ -480,8 +613,6 @@
                             // videoFolder?condition1
                             file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
                             console.log(`DAY ${file.output_path_log}`);
-
-                            //displayResults(data);
                         }).bind(this));
                     };
                     fileElement.appendChild(fileElementLast);
@@ -521,9 +652,9 @@
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
-            const data = await response.json();
-            console.log(data);
-            return data; // Return the data received from the server
+            const removeFileResponse = await response.json();
+            console.log(removeFileResponse);
+            return removeFileResponse; // Return the data received from the server
         } catch (error) {
             console.error('Error:', error);
             throw error; // Re-throw the error so it can be caught in the calling code
@@ -551,9 +682,9 @@
                 throw new Error(`HTTP error! Status: ${response.status}`);
             }
 
-            const data = await response.json();
-            console.log(data);
-            return data; // Return the data received from the server
+            const moveFileResponse = await response.json();
+            console.log(moveFileResponse);
+            return moveFileResponse; // Return the data received from the server
         } catch (error) {
             console.error('Error:', error);
             throw error; // Re-throw the error so it can be caught in the calling code
@@ -566,25 +697,25 @@
     }
 
     function showActionsHistory() {
-        let data = localStorage.getItem("actionsHistory");
+        let historyData = localStorage.getItem("actionsHistory");
 
         try {
-            data = data ? JSON.parse(data) : [];
+            historyData = historyData ? JSON.parse(historyData) : [];
         } catch (e) {
-            data = [];
+            historyData = [];
         }
 
         const actionsHistoryOutputElement = document.getElementById("actions_history"); // actionsHistoryOutputElement
         actionsHistoryOutputElement.innerHTML = ''; // Clear previous content
         const buttonTextContentLR = ' => ';
 
-        const historyLength = document.getElementById('history_length').textContent = `(${data.length})`;
+        const historyLength = document.getElementById('history_length').textContent = `(${historyData.length})`;
 
-        console.log(data);
-        data.reverse();
+        console.log(historyData);
+        historyData.reverse();
         // Display the results in the output element
-        if (data.length > 0) {
-            data.forEach((file, index) => {
+        if (historyData.length > 0) {
+            historyData.forEach((file, index) => {
                 const fileElement = document.createElement("p");
 
                 const fileElementBefore = document.createElement("span");
@@ -612,6 +743,155 @@
 
             actionsHistoryOutputElement.appendChild(fileElement);
         }
+    }
+
+    function navigate(id) {
+        const pages = document.querySelectorAll('.page');
+        pages.forEach(page => {
+            page.classList.remove('active');
+        });
+        document.getElementById(id).classList.add('active');
+    }
+    /* endregion Explorer */
+
+    function calendarHeading(month, year) {
+        const monthNames = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"
+        ];
+        const heading = document.createElement('h1');
+        heading.innerText = `${monthNames[month]} ${year}`;
+        document.querySelector('#calendar-content').appendChild(heading);
+    }
+
+    function generateCalendar() {
+        globalData.files.forEach(file => arrangeInputData(file));
+        console.log(arrangedData);
+        fn2();
+    }
+
+    function addCalendarShiftDay(numberOfFirstDayInMonth) {
+        for(let j = 1; j <= numberOfFirstDayInMonth; j++) {
+            let divElement = document.createElement('div');
+            divElement.classList.add('m-space');
+
+            document.querySelector('#calendar-content').appendChild(divElement);
+        }
+    }
+
+    function arrangeInputData(file) {
+        if (Object.keys(arrangedData).includes(file.path.month)) {
+            if (Object.keys(arrangedData[file.path.month]).includes(file.path.day)) {
+                if (Object.keys(arrangedData[file.path.month][file.path.day]).includes(file.path.year)) {
+                    arrangedData[file.path.month][file.path.day][file.path.year].push(file);
+                } else {
+                    arrangedData[file.path.month][file.path.day][file.path.year] = [];
+                    arrangedData[file.path.month][file.path.day][file.path.year].push(file);
+                }
+            } else {
+                arrangedData[file.path.month][file.path.day] = {};
+                arrangedData[file.path.month][file.path.day][file.path.year] = [];
+                arrangedData[file.path.month][file.path.day][file.path.year].push(file);
+            }
+        } else {
+            arrangedData[file.path.month] = {};
+            arrangedData[file.path.month][file.path.day] = {};
+            arrangedData[file.path.month][file.path.day][file.path.year] = [];
+            arrangedData[file.path.month][file.path.day][file.path.year].push(file);
+        }
+
+        //console.log(arrangedData);
+    }
+
+    function fn2() {
+        const currentYear = new Date().getFullYear();
+        const userPickMonth = document.querySelector('#calendar-month').value;
+        const currentMonth = userPickMonth ? userPickMonth - 1 : Object.keys(arrangedData)[0] - 1;
+
+        document.querySelector('#calendar-content').innerHTML = '';
+        calendarHeading(currentMonth, currentYear);
+
+        const currentDate = new Date(+currentYear, +currentMonth + 1, 0);
+        const daysInCurrentMonth = currentDate.getDate();
+        const numberOfFirstDayInMonth = new Date(+currentYear, +currentMonth, 1).getDay();
+        const numberOfLastDayInMonth = new Date(+currentYear, +currentMonth, daysInCurrentMonth).getDay();
+
+        addCalendarShiftDay(numberOfFirstDayInMonth - 1);
+
+        console.log(arrangedData);
+
+        for(let dayInMonth = 1; dayInMonth <= daysInCurrentMonth; dayInMonth++) {
+            const currentMonthLeadZero = currentMonth + 1 < 10 ? `0${currentMonth + 1}` : (currentMonth + 1).toString();
+            let dayInMonthLeadZero = dayInMonth < 10 ? `0${dayInMonth}` : dayInMonth.toString();
+            if (Object.keys(arrangedData[currentMonthLeadZero]).includes(dayInMonthLeadZero)) {
+                let divElement = document.createElement('div');
+                divElement.classList.add('month-cell');
+
+                let photoDay = document.createElement('span');
+                photoDay.classList.add('m-day');
+                photoDay.innerText = `${dayInMonth}`;
+
+                divElement.appendChild(photoDay);
+
+                let container = document.createElement('div');
+                container.style.overflowY = 'scroll';
+                container.style.width = '100%';
+                container.style.height = '200px';
+
+                let totalPhotoPerDay = 0;
+
+                // all years in this month+day
+                Object.entries(arrangedData[currentMonthLeadZero][dayInMonthLeadZero]).forEach((item) => {
+                    arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].forEach((file) => {
+                        let wrapper = document.createElement('div');
+                        wrapper.style.position = 'relative';
+
+                        let photoYear = document.createElement('span');
+                        photoYear.classList.add('m-year');
+                        photoYear.innerText = item[0];
+
+                        wrapper.appendChild(fn(`file://${file.source_path_log}`));
+                        wrapper.appendChild(photoYear);
+                        totalPhotoPerDay+=1;
+
+                        container.appendChild(wrapper);
+                    });
+                });
+
+                if(totalPhotoPerDay > 1) {
+                    // badge of all photos related to this day in this month
+                    let amountPhotos = document.createElement('div');
+                    amountPhotos.classList.add('amount-photos');
+                    amountPhotos.innerHTML = totalPhotoPerDay.toString();
+
+                    divElement.appendChild(amountPhotos);
+                }
+
+                divElement.appendChild(container);
+
+                document.querySelector('#calendar-content').appendChild(divElement);
+            } else {
+                let divElement = document.createElement('div');
+                divElement.classList.add('m-no-photo-space');
+
+                let photoDay = document.createElement('span');
+                photoDay.classList.add('m-day');
+                photoDay.innerText = `${dayInMonth}`;
+
+                divElement.appendChild(photoDay);
+
+                document.querySelector('#calendar-content').appendChild(divElement);
+            }
+        }
+
+        addCalendarShiftDay(7 - numberOfLastDayInMonth);
+    }
+
+    function fn(src) {
+        let imgElement = document.createElement('img');
+        imgElement.setAttribute('src', src);
+        imgElement.setAttribute('width', '100');
+        imgElement.setAttribute('height', '100');
+        return imgElement;
     }
 
     window.onload = () => {
