@@ -175,6 +175,45 @@
             width: calc(var(--a4-side-size-sort) - var(--minimumMargin) * 2);
             height: calc(var(--a4-side-size-wide) - var(--minimumMargin) * 2);
         }
+        .preview {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            top: 10%;
+            left: 10%;
+            background-color: white;
+            border: 1px solid black;
+            z-index: 100;
+        }
+        .preview .scene {
+            height: 80%;
+            border: 1px solid black;
+        }
+        .preview .carousel {
+            height: 20%;
+            display: flex;
+            gap: 20px;
+            overflow-x: auto;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .preview .close {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: white;
+            border: 1px solid black;
+            padding: 5px;
+            cursor: pointer;
+        }
+        .preview .scene img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 20px;
+            box-sizing: border-box;
+        }
         @media print {
             body * {
                 margin: 0;
@@ -276,6 +315,13 @@
 <script>
     const globalData = {};
     const arrangedData = {};
+    const calendarData = {};
+    let calendarPreviewSelected = {};
+    const blobType = {
+        png: "image/png",
+        mp4: "video/mp4",
+        mov: "video/quicktime"
+    };
     /* region Explorer */
     function fetchFiles() {
         const sourceFolder = document.getElementById('sourceFolder').value;
@@ -310,6 +356,10 @@
             .catch(error => {
                 console.error('Error:', error);
             });
+    }
+
+    function getBlob(type, blob) {
+        return `data:${type};base64,${blob}`;
     }
 
     function displayResults() {
@@ -348,22 +398,27 @@
                     fileElement.className = "file";
 
                     if(file.blob) {
-                        if(file.path.extension === ".mp4") {
+                        const isMp4 = file.path.extension === ".mp4";
+                        const isMov = file.path.extension !== ".mov";
+                        if (isMp4 || isMov) {
+                            const sourceType = isMp4 ? blobType.mp4 : blobType.mov;
                             const video = document.createElement("video");
                             video.controls = true;
                             video.width = 320;
                             video.height = 240;
 
                             const source = document.createElement("source");
-                            source.type = "video/mp4";
-                            const urlBlob = `data:video/mp4;base64,${file.blob}`;
+                            source.type = sourceType;
+                            // const urlBlob = `data:${sourceType};base64,${file.blob}`;
+                            const urlBlob = getBlob(sourceType, file.blob);
                             source.src = urlBlob;
 
                             video.appendChild(source);
                             fileElement.appendChild(video);
                         } else {
                             const image = document.createElement("img");
-                            image.src = `data:image/png;base64,${file.blob}`;
+                            // image.src = `data:image/png;base64,${file.blob}`;
+                            image.src = getBlob(blobType.png, file.blob);
                             image.width = 320;
                             image.height = 240;
                             fileElement.appendChild(image);
@@ -480,7 +535,7 @@
                     fileElement.appendChild(fileElementAfter);
                     fileNameMismatchElement.appendChild(fileElement);
 
-                    if(file.path.extension !== ".mp4") {
+                    if (file.path.extension !== ".mp4" && file.path.extension !== ".mov") {
                         file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
                     }
                     fileElementAfter.textContent = `${file.output_path_log}`;
@@ -509,6 +564,12 @@
                         event.stopPropagation();
                         console.log("DONE edit");
                         console.log(file);
+                        if (file.path.extension === ".mp4" || file.path.extension === ".mov") {
+                            if (document.getElementById("videoFolder").checked) {
+                                console.log(123);
+                                file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year} video/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
+                            }
+                        }
                         event.target.classList.add("hide");
 
                         displayResults();
@@ -516,6 +577,7 @@
                     fileElement.appendChild(fileElementDoneEdit);
 
                     fileElementLast.textContent = "/";
+                    fileElementLast.title = "Edit";
                     fileElementLast.onclick = async (event) => {
                         console.log("EDiT");
                         event
@@ -664,6 +726,10 @@
     async function moveFile(file) {
         console.log(file);
 
+        if (file.blob) {
+            delete file.blob;
+        }
+
         const apiUrl = 'http://localhost:3000/moveFile';
 
         try {
@@ -765,7 +831,6 @@
 
     function generateCalendar() {
         globalData.files.forEach(file => arrangeInputData(file));
-        console.log(arrangedData);
         fn2();
     }
 
@@ -802,10 +867,19 @@
         //console.log(arrangedData);
     }
 
+    function leadZero(number) {
+        return number < 10 ? `0${number}` : `${number}`;
+    }
+
     function fn2() {
+        console.log('fn2');
+        console.log(arrangedData);
         const currentYear = new Date().getFullYear();
         const userPickMonth = document.querySelector('#calendar-month').value;
         const currentMonth = userPickMonth ? userPickMonth - 1 : Object.keys(arrangedData)[0] - 1;
+        // const currentMonthLeadZero = currentMonth + 1 < 10 ? `0${currentMonth + 1}` : `${currentMonth + 1}`;
+        const currentMonthLeadZero = leadZero(currentMonth + 1);
+        // console.log(arrangedData[currentMonthLeadZero]);
 
         document.querySelector('#calendar-content').innerHTML = '';
         calendarHeading(currentMonth, currentYear);
@@ -817,14 +891,16 @@
 
         addCalendarShiftDay(numberOfFirstDayInMonth - 1);
 
-        console.log(arrangedData);
-
         for(let dayInMonth = 1; dayInMonth <= daysInCurrentMonth; dayInMonth++) {
-            const currentMonthLeadZero = currentMonth + 1 < 10 ? `0${currentMonth + 1}` : (currentMonth + 1).toString();
-            let dayInMonthLeadZero = dayInMonth < 10 ? `0${dayInMonth}` : dayInMonth.toString();
+            let dayInMonthLeadZero = leadZero(dayInMonth);
+
             if (Object.keys(arrangedData[currentMonthLeadZero]).includes(dayInMonthLeadZero)) {
+                // console.log("if 1");
                 let divElement = document.createElement('div');
                 divElement.classList.add('month-cell');
+                divElement.addEventListener("click", (event) => {
+                    dailyImagesPreview(event);
+                });
 
                 let photoDay = document.createElement('span');
                 photoDay.classList.add('m-day');
@@ -836,32 +912,44 @@
                 container.style.overflowY = 'scroll';
                 container.style.width = '100%';
                 container.style.height = '200px';
+                container.setAttribute("day", dayInMonth);
 
                 let totalPhotoPerDay = 0;
 
                 // all years in this month+day
                 Object.entries(arrangedData[currentMonthLeadZero][dayInMonthLeadZero]).forEach((item) => {
-                    arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].forEach((file) => {
-                        let wrapper = document.createElement('div');
-                        wrapper.style.position = 'relative';
+                    // console.log(item);
+                    // arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].forEach(async (file) => {
+                    // let wrapper = document.createElement('div');
+                    // wrapper.style.position = 'relative';
 
-                        let photoYear = document.createElement('span');
-                        photoYear.classList.add('m-year');
-                        photoYear.innerText = item[0];
+                    // let photoYear = document.createElement('span');
+                    // photoYear.classList.add('m-year');
+                    // photoYear.innerText = item[0];
 
-                        wrapper.appendChild(fn(`file://${file.source_path_log}`));
-                        wrapper.appendChild(photoYear);
-                        totalPhotoPerDay+=1;
+                    // const img = document.createElement('img');
 
-                        container.appendChild(wrapper);
-                    });
+                    // const imgSrc = await getBlobImage(file.source_path_log);
+                    // if(breaker === 0) {
+                    //     wrapper.appendChild(await getBlobImage(file.source_path_log));
+                    //     breaker++;
+                    // }
+
+                    // wrapper.appendChild(img);
+                    // wrapper.appendChild(photoYear);
+                    // totalPhotoPerDay+=1;
+
+                    // container.appendChild(wrapper);
+                    // });
+
+                    totalPhotoPerDay = arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].length;
                 });
 
                 if(totalPhotoPerDay > 1) {
                     // badge of all photos related to this day in this month
                     let amountPhotos = document.createElement('div');
                     amountPhotos.classList.add('amount-photos');
-                    amountPhotos.innerHTML = totalPhotoPerDay.toString();
+                    amountPhotos.innerHTML = `${totalPhotoPerDay}`;
 
                     divElement.appendChild(amountPhotos);
                 }
@@ -870,6 +958,7 @@
 
                 document.querySelector('#calendar-content').appendChild(divElement);
             } else {
+                // console.log("else 1");
                 let divElement = document.createElement('div');
                 divElement.classList.add('m-no-photo-space');
 
@@ -886,12 +975,177 @@
         addCalendarShiftDay(7 - numberOfLastDayInMonth);
     }
 
+    function dailyImagesPreview(event) {
+        console.log('dailyImagesPreview', event);
+        console.log(event.target.attributes.day.value, document.querySelector('#calendar-month').value);
+        const month = leadZero(document.querySelector('#calendar-month').value);
+        const day = leadZero(event.target.attributes.day.value);
+
+        const preview = document.createElement("div");
+        preview.className = "preview";
+
+        const scene = document.createElement("div");
+        scene.className = "scene";
+
+        const sceneImg = document.createElement("img");
+        scene.appendChild(sceneImg);
+
+        const pickThisImage = document.createElement("input");
+        pickThisImage.type = "checkbox";
+        scene.appendChild(pickThisImage);
+
+        const carousel = document.createElement("div");
+        carousel.className = "carousel";
+
+        const close = document.createElement("div");
+        close.className = "close";
+        close.innerText = "X";
+        close.onclick = () => {
+            preview.remove();
+        };
+
+        Object.keys(arrangedData[month][day]).forEach(year => {
+            arrangedData[month][day][year].forEach(async (file) => {
+                // console.log(file);
+                const img = document.createElement("img");
+                img.className = "preview-image";
+                const fileBlob = await getBlobImage(file.source_path_log);
+                img.src = getBlob(blobType.png, fileBlob.blob);
+                img.onclick = () => {
+                    scene.querySelector("img").src = img.src;
+                    // How to select this image?
+                    // calendarPreviewSelected[month][day][year] = file; // should be current year
+                };
+                carousel.appendChild(img);
+            });
+        });
+
+        preview.appendChild(close);
+        preview.appendChild(scene);
+        preview.appendChild(carousel);
+        document.querySelector("#calendar").appendChild(preview);
+    }
+
     function fn(src) {
         let imgElement = document.createElement('img');
         imgElement.setAttribute('src', src);
         imgElement.setAttribute('width', '100');
         imgElement.setAttribute('height', '100');
         return imgElement;
+    }
+
+    async function getBlobImage(path) {
+        return await fetch('http://localhost:3000/getBlobImage', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json', // Adjust based on your server's expectations
+                // Add any other headers if needed
+            },
+            body: JSON.stringify({
+                src: path
+            }),
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(responseBlobImage => responseBlobImage)
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+
+    function draftCode() {
+        // https://www.canva.dev/docs/apps/creating-shapes/
+        // 1. Creating shapes
+        // 2. How to use image and video fills
+        // 3.1. Import the addNativeElement method from the @canva/design package:
+        // 3.2. Import the upload method from the @canva/asset package:
+        // 3.3. Upload an image or video to Canva's backend:
+        // The upload method returns a ref property. This property contains a unique identifier that points to an asset in Canva's backend. To learn more, see Uploading assets.
+        // 3.4. Pass the ref property into the fill:
+
+//         const axios = require('axios');
+//
+// // Authenticate with Canva API
+//         const apiKey = 'YOUR_API_KEY';
+//         const authToken = 'YOUR_AUTH_TOKEN';
+//
+// // Upload image to Canva
+//         async function uploadImage(imageFile) {
+//             try {
+//                 const response = await axios.post('https://api.canva.com/v1/assets', {
+//                     file: imageFile
+//                 }, {
+//                     headers: {
+//                         'Authorization': `Bearer ${authToken}`,
+//                         'Content-Type': 'application/json'
+//                     }
+//                 });
+//                 return response.data.assetId;
+//             } catch (error) {
+//                 console.error('Error uploading image:', error);
+//                 throw error;
+//             }
+//         }
+//
+// // Example usage
+//         const imageFile = 'path/to/your/image.jpg';
+//         uploadImage(imageFile)
+//             .then(assetId => {
+//                 console.log('Image uploaded successfully. Asset ID:', assetId);
+//                 // Use the assetId to add the image to a Canva design
+//             })
+//             .catch(error => {
+//                 console.error('Failed to upload image:', error);
+//             });
+//
+//
+//         //*2*//
+//
+//         const axios = require('axios');
+//
+// // Authenticate with Canva API
+//         const apiKey = 'YOUR_API_KEY';
+//         const authToken = 'YOUR_AUTH_TOKEN';
+//
+// // Function to add uploaded image to a design canvas
+//         async function addImageToDesign(assetId, designId) {
+//             try {
+//                 const response = await axios.post(`https://api.canva.com/v1/designs/${designId}/pages`, {
+//                     elements: [
+//                         {
+//                             type: 'image',
+//                             assetId: assetId,
+//                             x: 100, // X coordinate position on the canvas
+//                             y: 100, // Y coordinate position on the canvas
+//                             width: 200, // Width of the image element
+//                             height: 150 // Height of the image element
+//                         }
+//                     ]
+//                 }, {
+//                     headers: {
+//                         'Authorization': `Bearer ${authToken}`,
+//                         'Content-Type': 'application/json'
+//                     }
+//                 });
+//                 console.log('Image added to design successfully:', response.data);
+//             } catch (error) {
+//                 console.error('Error adding image to design:', error);
+//                 throw error;
+//             }
+        // Example usage
+        // const assetId = 'YOUR_ASSET_ID'; // Asset ID of the uploaded image
+        // const designId = 'YOUR_DESIGN_ID'; // ID of the design canvas where you want to add the image
+        // addImageToDesign(assetId, designId)
+        //     .then(() => {
+        //         console.log('Image added to design successfully.');
+        //     })
+        //     .catch(error => {
+        //         console.error('Failed to add image to design:', error);
+        //     });
     }
 
     window.onload = () => {

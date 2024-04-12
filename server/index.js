@@ -39,14 +39,14 @@ app.post('/processFiles', (req, res) => {
 
         // Process each file
         const processedFiles = files.filter((fileName) => {
-            return fileName.match(/\.(jpg|mp4)$/i);
+            return fileName.match(/\.(jpg|mp4|mov|dng|jpeg)$/i);
         }).map((fileName) => {
             let result = {};
             let output_path = '';
             const extension = path.extname(fileName);
             const {year, month, day, hours, minutes, seconds, isBlob} = parseFileName(fileName);
 
-            if (extension === '.mp4' && videoFolder) {
+            if ((extension === '.mp4' || extension === '.mov') && videoFolder) {
                 output_path = `${year} video/`;
             } else {
                 output_path = path.join(`${year}.${month}`, `${year}.${month}.${day}`);
@@ -72,6 +72,8 @@ app.post('/processFiles', (req, res) => {
             if (isBlob) {
                 result.blob = getImageBlob(path.join(currentSourceFolder, fileName));
             }
+
+            console.log(result.origin_name, result.output_path_log);
 
             return result;
         });
@@ -109,14 +111,16 @@ app.post('/moveFile', (req, res) => {
 
                     // If the file already exists, generate a unique name for the destination
                     // const timestamp = new Date().toISOString().replace(/:/g, '-');
-                    const filesInCurrentFolder = await fs.promises.readdir(file.output_path); // actually, we need to find files with the same name
+                    const filesInCurrentFolder = await fs.promises.readdir(path.dirname(file.output_path_log)); // actually, we need to find files with the same name
                     const filePostfix = filesInCurrentFolder.length + 1 < 10 ? `0${filesInCurrentFolder.length + 1}` : filesInCurrentFolder.length + 1;
                     // file.output_path_log -> //Volumes/MyPassport/test/2021/2021.02/2021.02.01/2021-02-01 01.jpg
                     const oldFileName = path.basename(file.output_path_log, path.extname(file.output_path_log));
                     // const output_path_new_filename = path.join(path.dirname(file.output_path_log), `${oldFileName}.${timestamp}${path.extname(file.output_path_log)}`); // will create a new file which is probably already there
                     const output_path_new_filename = path.join(path.dirname(file.output_path_log), `${oldFileName} ${filePostfix}${path.extname(file.output_path_log)}`); // will create a new file which is probably already there
+                    console.log(output_path_new_filename);
+                    file.output_path_log = output_path_new_filename;
 
-                    const messageMoveFile = await moveFile(file, output_path_new_filename);
+                    const messageMoveFile = await moveFile(file);
                     result.success = true;
                     result.message = `${message}`;
                     return res.json(result);
@@ -143,13 +147,17 @@ app.post('/removeFile', (req, res) => {
         if (err) {
             console.error(`Error removing file: ${err.message}`);
             result.message = err.message;
-            return result;
+            return res.json(result);
         } else {
             console.log(`File ${file.source_path_log} removed successfully.`);
             result.success = true;
-            return result;
+            return res.json(result);
         }
     });
+});
+
+app.post('/getBlobImage', async (req,res) => {
+    return res.json({blob: await getImageBlob(req.body.src)});
 });
 
 function areFilesEqual(path1, path2) {
@@ -188,12 +196,12 @@ function parseFileName(fileName) {
     };
 }
 
-function getImageBlob(fileName) {
+async function getImageBlob(path) {
     let base64Data = null;
 
     try {
         // Read the image file synchronously
-        const data = fs.readFileSync(fileName);
+        const data = fs.readFileSync(path);
 
         // Convert the binary data to Base64-encoded string
         base64Data = Buffer.from(data).toString('base64');
@@ -201,18 +209,19 @@ function getImageBlob(fileName) {
         console.error('Error reading the file:', err);
     }
 
+    console.log(path);
     return base64Data;
 }
 
-async function moveFile(file, output_path_new_filename) {
+async function moveFile(file) {
     const moveFileAsync = util.promisify(fsExtra.move);
     let result = {
         success: false
     };
 
     try {
-        await moveFileAsync(file.source_path_log, output_path_new_filename || file.output_path_log);
-        const message = `File moved from ${file.source_path_log} to ${output_path_new_filename || file.output_path_log} successfully`;
+        await moveFileAsync(file.source_path_log, file.output_path_log);
+        const message = `File moved from ${file.source_path_log} to ${file.output_path_log} successfully`;
         console.log(message);
         result.success = true;
         result.message = message;
