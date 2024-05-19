@@ -32,56 +32,58 @@ app.post('/processFiles', (req, res) => {
     }
 
     // Read files in the source folder
-    fs.readdir(currentSourceFolder, (err, files) => {
+    fs.readdir(currentSourceFolder, async (err, files) => {
         if (err) {
             return res.status(500).json({error: 'Error reading source folder.'});
         }
 
         // Process each file
-        const processedFiles = files.filter((fileName) => {
-            return fileName.match(/\.(jpg|mp4|mov|dng|jpeg)$/i);
-        }).map((fileName) => {
-            let result = {};
-            let output_path = '';
-            const extension = path.extname(fileName);
-            const {year, month, day, hours, minutes, seconds, isBlob} = parseFileName(fileName);
+        const processedFiles = await Promise.all(
+            files.filter((fileName) => {
+                return fileName.match(/\.(jpg|mp4|mov|dng|jpeg)$/i);
+            }).map(async (fileName) => {
+                let result = {};
+                let output_path = '';
+                const extension = path.extname(fileName);
+                const {year, month, day, hours, minutes, seconds, isBlob} = parseFileName(fileName);
 
-            if ((extension === '.mp4' || extension === '.mov') && videoFolder) {
-                output_path = `${year} video/`;
-            } else {
-                output_path = path.join(`${year}.${month}`, `${year}.${month}.${day}`);
-            }
+                if ((extension === '.mp4' || extension === '.mov') && videoFolder) {
+                    output_path = `${year} video/`;
+                } else {
+                    output_path = path.join(`${year}.${month}`, `${year}.${month}.${day}`);
+                }
 
-            result = {
-                origin_name: fileName,
-                path: {
-                year,
-                    month,
-                    day,
-                    hours,
-                    minutes,
-                    seconds,
-                    extension
-            },
-                source_path_log: path.join(currentSourceFolder, fileName),
+                result = {
+                    origin_name: fileName,
+                    path: {
+                        year,
+                        month,
+                        day,
+                        hours,
+                        minutes,
+                        seconds,
+                        extension
+                    },
+                    source_path_log: path.join(currentSourceFolder, fileName),
                     source_path: currentSourceFolder,
-                output_path_log: path.join(outputFolder, year, output_path, fileName),
-                output_path: path.join(outputFolder, year, output_path),
-            }
+                    output_path_log: path.join(outputFolder, year, output_path, fileName),
+                    output_path: path.join(outputFolder, year, output_path),
+                }
 
-            if (isBlob) {
-                result.blob = getImageBlob(path.join(currentSourceFolder, fileName));
-            }
+                if (isBlob) {
+                    result.blob = await getImageBlob(path.join(currentSourceFolder, fileName));
+                }
 
-            console.log(result.origin_name, result.output_path_log);
+                console.log(result.origin_name, result.output_path_log);
 
-            return result;
-        });
+                return result;
+            })
+        );
 
         const totalFiles = processedFiles.length;
 
         res.json({totalFiles, files: processedFiles});
-    });
+    })
 });
 
 app.post('/moveFile', (req, res) => {

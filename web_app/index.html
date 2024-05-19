@@ -214,6 +214,20 @@
             padding: 20px;
             box-sizing: border-box;
         }
+        .preview .carousel img {
+            height: 100%;
+        }
+        .preview .carousel input[type="radio"] {
+            position: absolute;
+        }
+        .collapse {
+            transition: .3s all;
+            overflow: hidden;
+            height: 0;
+        }
+        .collapse.show {
+            height: auto;
+        }
         @media print {
             body * {
                 margin: 0;
@@ -272,23 +286,28 @@
         <div class="content">
             <h1>Source files <span id="total_actions"></span></h1>
             <div class="content">
-                <h2>Unknown date <span id="unknown_date_amount"></span></h2>
-                <div id="file_name_mismatch"></div>
+                <div class="flex" style="align-items: center;">
+                    <h2>Unknown date <span id="unknown_date_amount"></span></h2>
+                    <button onclick="toggleCollapse(event, 'file_name_mismatch')" style="height: 37px">+</button>
+                </div>
+                <div id="file_name_mismatch" class="collapse"></div>
             </div>
             <div class="content">
-                <h2>Known date <span id="known_date_amount"></span></h2>
-                <div id="file_name_match"></div>
+                <div class="flex" style="align-items: center;">
+                    <h2>Known date <span id="known_date_amount"></span></h2>
+                    <button onclick="toggleCollapse(event, 'file_name_match')" style="height: 37px">+</button>
+                </div>
+                <div id="file_name_match" class="collapse"></div>
             </div>
         </div>
         <div class="content actions-history">
-            <h1>History of actions with source files <span id="history_length"></span></h1>
-            <button onclick="eraseActionsHistory()">Erase</button>
-            <div id="actions_history">
-                <!--            <p>-->
-                <!--                <span>//Users/alef/Library/CloudStorage/Dropbox/Camera Uploads/2021-02-01 01 copy.jpg</span>-->
-                <!--                <span> =&gt; </span>-->
-                <!--                <span>//Volumes/MyPassport/test/2021/2021.02/2021.02.01/2021-02-01 01 copy.jpg</span>-->
-                <!--            </p>-->
+            <div class="flex" style="align-items: center;">
+                <h1>History of actions with source files <span id="history_length"></span></h1>
+                <button onclick="toggleCollapse(event, 'history')" style="height: 37px">+</button>
+            </div>
+            <div id="history" class="collapse">
+                <button onclick="eraseActionsHistory()">Erase</button>
+                <div id="actions_history"></div>
             </div>
         </div>
     </div>
@@ -315,8 +334,6 @@
 <script>
     const globalData = {};
     const arrangedData = {};
-    const calendarData = {};
-    let calendarPreviewSelected = {};
     const blobType = {
         png: "image/png",
         mp4: "video/mp4",
@@ -399,7 +416,7 @@
 
                     if(file.blob) {
                         const isMp4 = file.path.extension === ".mp4";
-                        const isMov = file.path.extension !== ".mov";
+                        const isMov = file.path.extension === ".mov";
                         if (isMp4 || isMov) {
                             const sourceType = isMp4 ? blobType.mp4 : blobType.mov;
                             const video = document.createElement("video");
@@ -909,7 +926,7 @@
                 divElement.appendChild(photoDay);
 
                 let container = document.createElement('div');
-                container.style.overflowY = 'scroll';
+                container.style.overflow = 'hidden';
                 container.style.width = '100%';
                 container.style.height = '200px';
                 container.setAttribute("day", dayInMonth);
@@ -919,28 +936,25 @@
                 // all years in this month+day
                 Object.entries(arrangedData[currentMonthLeadZero][dayInMonthLeadZero]).forEach((item) => {
                     // console.log(item);
-                    // arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].forEach(async (file) => {
-                    // let wrapper = document.createElement('div');
-                    // wrapper.style.position = 'relative';
+                    arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].forEach(async (file) => {
+                        if(file.selected) {
+                            let wrapper = document.createElement('div');
+                            wrapper.style.position = 'relative';
 
-                    // let photoYear = document.createElement('span');
-                    // photoYear.classList.add('m-year');
-                    // photoYear.innerText = item[0];
+                            let photoYear = document.createElement('span');
+                            photoYear.classList.add('m-year');
+                            photoYear.innerText = item[0];
 
-                    // const img = document.createElement('img');
+                            const img = document.createElement('img');
 
-                    // const imgSrc = await getBlobImage(file.source_path_log);
-                    // if(breaker === 0) {
-                    //     wrapper.appendChild(await getBlobImage(file.source_path_log));
-                    //     breaker++;
-                    // }
+                            const imgSrc = await getBlobImage(file.source_path_log);
+                            img.src = getBlob(blobType.png, imgSrc.blob);
 
-                    // wrapper.appendChild(img);
-                    // wrapper.appendChild(photoYear);
-                    // totalPhotoPerDay+=1;
-
-                    // container.appendChild(wrapper);
-                    // });
+                            wrapper.appendChild(img);
+                            wrapper.appendChild(photoYear);
+                            container.appendChild(wrapper);
+                        }
+                    });
 
                     totalPhotoPerDay = arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].length;
                 });
@@ -975,11 +989,27 @@
         addCalendarShiftDay(7 - numberOfLastDayInMonth);
     }
 
+    function findParentWithAttribute(element, attributeName) {
+        // Base case: If the element is null or doesn't have a parent, return null
+        if (!element || !element.parentNode || element.classList.contains("month-cell")) {
+            return null;
+        }
+
+        // Check if the current element has the desired attribute
+        if (element.hasAttribute(attributeName)) {
+            return element;
+        }
+
+        // Recursively call the function with the parent element
+        return findParentWithAttribute(element.parentNode, attributeName);
+    }
+
     function dailyImagesPreview(event) {
-        console.log('dailyImagesPreview', event);
-        console.log(event.target.attributes.day.value, document.querySelector('#calendar-month').value);
+        // console.log('dailyImagesPreview', event);
+        // console.log(event.target.attributes.day.value, document.querySelector('#calendar-month').value);
         const month = leadZero(document.querySelector('#calendar-month').value);
-        const day = leadZero(event.target.attributes.day.value);
+        const findDay = findParentWithAttribute(event.target, "day").attributes.day.value;
+        const day = leadZero(findDay);
 
         const preview = document.createElement("div");
         preview.className = "preview";
@@ -1002,21 +1032,35 @@
         close.innerText = "X";
         close.onclick = () => {
             preview.remove();
+            document.querySelector('#calendar-content').innerHTML = '';
+            fn2();
         };
 
         Object.keys(arrangedData[month][day]).forEach(year => {
             arrangedData[month][day][year].forEach(async (file) => {
                 // console.log(file);
+                const container = document.createElement("div");
+                const inputRadio = document.createElement("input");
+                inputRadio.type = "radio";
+                inputRadio.name = "selected";
+                inputRadio.addEventListener("change", (event) => {
+                    console.log(arrangedData[month][day][year]);
+                    console.log(event);
+                    console.log(file);
+                    arrangedData[month][day][year].forEach(file => file["selected"] = false);
+                    file["selected"] = event.target.checked;
+                });
+
                 const img = document.createElement("img");
                 img.className = "preview-image";
                 const fileBlob = await getBlobImage(file.source_path_log);
                 img.src = getBlob(blobType.png, fileBlob.blob);
                 img.onclick = () => {
                     scene.querySelector("img").src = img.src;
-                    // How to select this image?
-                    // calendarPreviewSelected[month][day][year] = file; // should be current year
                 };
-                carousel.appendChild(img);
+                container.appendChild(inputRadio);
+                container.appendChild(img);
+                carousel.appendChild(container);
             });
         });
 
@@ -1146,6 +1190,11 @@
         //     .catch(error => {
         //         console.error('Failed to add image to design:', error);
         //     });
+    }
+
+    function toggleCollapse(event, elementId) {
+        event.target.textContent = event.target.textContent === "+" ? "-" : "+";
+        document.querySelector(`#${elementId}`).classList.toggle("show");
     }
 
     window.onload = () => {
