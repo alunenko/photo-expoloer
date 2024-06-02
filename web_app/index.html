@@ -92,9 +92,9 @@
         }
         /* endregion: explorer */
         /*region: calendar*/
-        .flex .print {
-            justify-content: center;
-        }
+        /*.flex .print {*/
+        /*    justify-content: center;*/
+        /*}*/
 
         .title {
             text-align: center;
@@ -103,6 +103,10 @@
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
+        }
+        .calendar h1 {
+            width: 100%;
+            text-align: center;
         }
         .calendar > div {
             width: calc((100% - (10px * 2) * 5) / 7); /* 100% / gap 10px from 2 sides for 5 items in middle */
@@ -228,14 +232,23 @@
         .collapse.show {
             height: auto;
         }
-        @media print {
-            body * {
-                margin: 0;
-                display: none;
-            }
-            body .print, body .print * {display: block;}
-        }
+        /*@media print {*/
+        /*    body * {*/
+        /*        margin: 0;*/
+        /*        display: none;*/
+        /*    }*/
+        /*    body .print, body .print * {display: block;}*/
+        /*}*/
         /*endregion: calendar*/
+
+        .print {
+            width: 100%;
+            background: white;
+        }
+
+        .m-space {
+            border: 2px solid white;
+        }
     </style>
 </head>
 <body>
@@ -321,16 +334,41 @@
             <label><input type="text" id="calendar-month" placeholder="month"/></label>
             <button type="button" onclick="generateCalendar()">Generate</button>
         </fieldset>
+        <fieldset>
+            <legend>Export</legend>
+            <button id="downloadButton">Download as PNG</button>
+        </fieldset>
     </form>
     <div class="flex">
-        <div id="print" class="print a4-size m-album">
+<!--        <div id="print" class="print a4-size m-album">-->
+        <div id="print" class="print">
             <div id="calendar-content" class="calendar">
                 <p>No data yet</p>
             </div>
         </div>
     </div>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+<script>
+    document.getElementById('downloadButton').addEventListener('click', function () {
+        const dayBadgeAmountPhotos = document.querySelectorAll(".amount-photos");
+        dayBadgeAmountPhotos.forEach((item) => item.style.display = "none");
+        const node = document.getElementById('print');
+        htmlToImage.toPng(node)
+            .then(function (dataUrl) {
+                const link = document.createElement('a');
+                link.download = 'myDiv.png';
+                link.href = dataUrl;
+                link.click();
+            })
+            .then(() => {
+                dayBadgeAmountPhotos.forEach((item) => item.style.display = "block");
+            })
+            .catch(function (error) {
+                console.error('oops, something went wrong!', error);
+            });
+    });
+</script>
 <script>
     const globalData = {};
     const arrangedData = {};
@@ -1040,6 +1078,7 @@
             arrangedData[month][day][year].forEach(async (file) => {
                 // console.log(file);
                 const container = document.createElement("div");
+                container.style.position = "relative";
                 const inputRadio = document.createElement("input");
                 inputRadio.type = "radio";
                 inputRadio.name = "selected";
