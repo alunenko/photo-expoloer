@@ -180,7 +180,7 @@
             height: calc(var(--a4-side-size-wide) - var(--minimumMargin) * 2);
         }
         .preview {
-            position: absolute;
+            position: fixed;
             width: 80%;
             height: 80%;
             top: 10%;
@@ -213,7 +213,7 @@
         }
         .preview .scene img {
             width: 100%;
-            height: 100%;
+            height: calc(100% - 37px - (21px * 2)); /* h1 height + margin */
             object-fit: contain;
             padding: 20px;
             box-sizing: border-box;
@@ -1043,6 +1043,7 @@
     }
 
     function dailyImagesPreview(event) {
+        document.querySelector(".preview") && document.querySelector(".preview").remove(); // close old, before open new
         // console.log('dailyImagesPreview', event);
         // console.log(event.target.attributes.day.value, document.querySelector('#calendar-month').value);
         const month = leadZero(document.querySelector('#calendar-month').value);
@@ -1055,6 +1056,11 @@
         const scene = document.createElement("div");
         scene.className = "scene";
 
+        const titleDay = document.createElement("h1");
+        titleDay.innerText = day;
+        titleDay.style.textAlign = "center";
+        scene.appendChild(titleDay);
+
         const sceneImg = document.createElement("img");
         scene.appendChild(sceneImg);
 
@@ -1065,6 +1071,23 @@
         const carousel = document.createElement("div");
         carousel.className = "carousel";
 
+        const carouselLoader = document.createElement("p");
+        carouselLoader.style.position = "absolute";
+        carouselLoader.style.right = "0";
+        carouselLoader.style.bottom = "0";
+        carouselLoader.innerText = "Loading: "
+        const carouselLoaderTotal = document.createElement("span");
+        carouselLoaderTotal.className = "carousel-loader-total"
+        carouselLoaderTotal.innerText = "0";
+
+        const carouselLoaderLoading = document.createElement("span");
+        carouselLoaderLoading.className = "carousel-loader-loading";
+        carouselLoaderLoading.innerText = "0";
+        carouselLoader.appendChild(carouselLoaderLoading);
+        carouselLoader.appendChild(carouselLoaderTotal);
+
+        scene.appendChild(carouselLoader);
+
         const close = document.createElement("div");
         close.className = "close";
         close.innerText = "X";
@@ -1074,8 +1097,11 @@
             fn2();
         };
 
+        let av = 0;
+
         Object.keys(arrangedData[month][day]).forEach(year => {
             arrangedData[month][day][year].forEach(async (file) => {
+                av = arrangedData[month][day][year].length;
                 // console.log(file);
                 const container = document.createElement("div");
                 container.style.position = "relative";
@@ -1097,6 +1123,7 @@
                 img.onclick = () => {
                     scene.querySelector("img").src = img.src;
                 };
+                document.querySelector(".carousel-loader-loading").innerText = document.querySelector(".carousel").childElementCount + 1;
                 container.appendChild(inputRadio);
                 container.appendChild(img);
                 carousel.appendChild(container);
@@ -1107,6 +1134,7 @@
         preview.appendChild(scene);
         preview.appendChild(carousel);
         document.querySelector("#calendar").appendChild(preview);
+        document.querySelector(".carousel-loader-total").innerText = `/${av}`;
     }
 
     function fn(src) {
