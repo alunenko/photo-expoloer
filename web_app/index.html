@@ -264,34 +264,35 @@
         <fieldset>
             <legend>General config</legend>
             <div>
-                <label for="sourceFolder">Source Folder:</label>
-                <input type="text" id="sourceFolder" placeholder="/path/to/source/folder">
+                <label for="explorer-config-sourceFolder">Source Folder:</label>
+                <input type="text" id="explorer-config-sourceFolder" placeholder="/path/to/source/folder">
             </div>
             <div>
-                <label for="outputFolder">Output Folder:</label>
-                <input type="text" id="outputFolder" placeholder="/path/to/output/folder">
+                <label for="explorer-config-outputFolder">Output Folder:</label>
+                <input type="text" id="explorer-config-outputFolder" placeholder="/path/to/output/folder">
             </div>
             <div>
-                <label for="videoFolder">Put all videos to single folder?</label>
-                <input type="checkbox" id="videoFolder">
+                <label for="explorer-config-videoFolder">Put all videos to single folder?</label>
+                <input type="checkbox" id="explorer-config-videoFolder">
             </div>
             <div>
-                <label for="putBack">"Put back" option</label>
-                <input type="checkbox" id="putBack">
+                <label for="explorer-config-putBack">"Put back" option</label>
+                <input type="checkbox" id="explorer-config-putBack">
             </div>
         </fieldset>
         <fieldset>
             <legend>Unknown date images</legend>
             <div>
-                <label for="preview">Preview</label>
-                <input type="checkbox" id="preview">
+                <label for="explorer-config-preview">Preview</label>
+                <input type="checkbox" id="explorer-config-preview">
             </div>
         </fieldset>
         <fieldset>
             <legend>Actions</legend>
             <div>
-                <button type="button" onclick="saveConfig()">Save config</button>
-                <button type="button" onclick="fetchFiles()">Fetch Files</button>
+                <button type="button" onclick="saveExplorerConfig()">Save config</button>
+                <button type="button" onclick="deleteExplorerConfig()">Save config</button>
+                <button type="button" onclick="fetchExplorerFiles()">Fetch Files</button>
             </div>
         </fieldset>
     </form>
@@ -330,18 +331,33 @@
     <h1>Calendar</h1>
     <form>
         <fieldset>
-            <legend>Scan folder</legend>
-            <label>Source path: <input id="calendarFolder" type="text"></label>
-            <div id="output"></div>
-            <button onclick="calendarScan()">Scan</button>
+            <legend>General</legend>
+            <label>Scan folder<input id="calendar-config-scan-folder" type="text"></label>
         </fieldset>
         <fieldset>
             <legend>Pick a date</legend>
-            <label><input type="text" id="calendar-month" placeholder="month"/></label>
-            <button type="button" onclick="generateCalendar()">Generate</button>
+            <label><select id="calendar-month">
+                <option value="" disabled="disabled" selected="selected"></option>
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+            </select></label>
         </fieldset>
         <fieldset>
-            <legend>Export</legend>
+            <legend>Actions</legend>
+            <button type="button" onclick="saveCalendarConfig()">Save config</button>
+            <button type="button" onclick="deleteCalendarConfig()">Delete config</button>
+            <button onclick="calendarScanFolder()">Scan folder</button>
+            <button type="button" onclick="generateCalendar()">Generate calendar</button>
             <button id="downloadButton">Download as PNG</button>
         </fieldset>
     </form>
@@ -349,7 +365,7 @@
 <!--        <div id="print" class="print a4-size m-album">-->
         <div id="print" class="print">
             <div id="calendar-content" class="calendar">
-                <p>No data yet</p>
+                <p id="output">No scanned data yet</p>
             </div>
         </div>
     </div>
@@ -384,9 +400,9 @@
         mov: "video/quicktime"
     };
     /* region Explorer */
-    function fetchFiles() {
-        const sourceFolder = document.getElementById('sourceFolder').value;
-        const outputFolder = document.getElementById('outputFolder').value;
+    function fetchExplorerFiles() {
+        const sourceFolder = document.getElementById('explorer-config-sourceFolder').value;
+        const outputFolder = document.getElementById('explorer-config-outputFolder').value;
         const videoFolder = document.getElementById('videoFolder').checked;
 
         const apiUrl = 'http://localhost:3000/processFiles';
@@ -424,7 +440,7 @@
     }
 
     function displayResults() {
-        const sourceFolder = document.getElementById('sourceFolder').value;
+        const sourceFolder = document.getElementById('explorer-config-sourceFolder').value;
         const fileNameMatchElement = document.getElementById('file_name_match');
         const fileNameMismatchElement = document.getElementById('file_name_mismatch');
         const totalActions = document.getElementById('total_actions');
@@ -447,10 +463,10 @@
                 (function(file){
                     const fileElement = document.createElement("div");
                     const fileElementBefore = document.createElement("span");
-                    const putBack = document.getElementById("putBack").checked;
+                    const putBack = document.getElementById("explorer-config-putBack").checked;
                     const fileElementMiddle = document.createElement("button");
                     const fileElementAfter = document.createElement('span');
-                    const outputFolder = document.getElementById("outputFolder").value;
+                    const outputFolder = document.getElementById("explorer-config-outputFolder").value;
                     const fileElementLast = document.createElement("button");
 
                     let internalYearIndex = 0;
@@ -626,7 +642,7 @@
                         console.log("DONE edit");
                         console.log(file);
                         if (file.path.extension === ".mp4" || file.path.extension === ".mov") {
-                            if (document.getElementById("videoFolder").checked) {
+                            if (document.getElementById("explorer-config-videoFolder").checked) {
                                 console.log(123);
                                 file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year} video/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
                             }
@@ -698,7 +714,7 @@
                                 // Optionally, you can reset the value to a default or clear it.
                                 monthInput.value = "00";
                             } else {
-                                const outputFolder = document.getElementById("outputFolder").value;
+                                const outputFolder = document.getElementById("explorer-config-outputFolder").value;
 
                                 // API call?
                                 // videoFolder?condition1
@@ -730,7 +746,7 @@
                         dayInput.addEventListener("change", (function(event) {
                             console.log("DAY EVENT");
                             file.path.day = event.target.value;
-                            const outputFolder = document.getElementById("outputFolder").value;
+                            const outputFolder = document.getElementById("explorer-config-outputFolder").value;
 
                             // API call?
                             // videoFolder?condition1
@@ -746,12 +762,20 @@
         }
     }
 
-    function saveConfig() {
-        localStorage.setItem("sourceFolder", document.getElementById("sourceFolder").value);
-        localStorage.setItem("outputFolder", document.getElementById("outputFolder").value);
-        localStorage.setItem("videoFolder", document.getElementById("videoFolder").checked);
-        localStorage.setItem("putBack", document.getElementById("putBack").checked);
-        localStorage.setItem("preview", document.getElementById("preview").checked);
+    function saveExplorerConfig() {
+        localStorage.setItem("explorer-config-sourceFolder", document.getElementById("explorer-config-sourceFolder").value);
+        localStorage.setItem("explorer-config-outputFolder", document.getElementById("explorer-config-outputFolder").value);
+        localStorage.setItem("explorer-config-videoFolder", document.getElementById("explorer-config-videoFolder").checked);
+        localStorage.setItem("explorer-config-putBack", document.getElementById("explorer-config-putBack").checked);
+        localStorage.setItem("explorer-config-preview", document.getElementById("explorer-config-preview").checked);
+    }
+
+    function saveCalendarConfig() {
+        localStorage.setItem("calendarConfigScanFolder", document.getElementById("calendar-config-scan-folder").value);
+    }
+
+    function deleteCalendarConfig() {
+        localStorage.removeItem("calendarConfigScanFolder");
     }
 
     async function removeFile(file) {
@@ -824,7 +848,7 @@
     }
 
     function showActionsHistory() {
-        let historyData = localStorage.getItem("actionsHistory");
+        let historyData = localStorage.getItem("explorerConfigActionsHistory");
 
         try {
             historyData = historyData ? JSON.parse(historyData) : [];
@@ -836,9 +860,8 @@
         actionsHistoryOutputElement.innerHTML = ''; // Clear previous content
         const buttonTextContentLR = ' => ';
 
-        const historyLength = document.getElementById('history_length').textContent = `(${historyData.length})`;
+        document.getElementById('history_length').textContent = `(${historyData.length})`;
 
-        console.log(historyData);
         historyData.reverse();
         // Display the results in the output element
         if (historyData.length > 0) {
@@ -1270,7 +1293,7 @@
         document.querySelector(`#${elementId}`).classList.toggle("show");
     }
 
-    function calendarScan () {
+    function calendarScanFolder () {
         const path = document.getElementById("calendarFolder").value;
         console.log(path);
         const output = document.getElementById('output');
@@ -1320,13 +1343,23 @@
         };
     }
 
+    function deleteExplorerConfig() {
+        localStorage.removeItem("explorerConfigSourceFolder");
+        localStorage.removeItem("explorerConfigOutputFolder");
+        localStorage.removeItem("explorerConfigVideoFolder");
+        localStorage.removeItem("explorerConfigPutBack");
+        localStorage.removeItem("explorerConfigPreview");
+    }
+
     window.onload = () => {
-        document.getElementById("sourceFolder").value = localStorage.getItem("sourceFolder");
-        document.getElementById("outputFolder").value = localStorage.getItem("outputFolder");
-        document.getElementById("videoFolder").checked = localStorage.getItem("videoFolder") === "true";
-        document.getElementById("putBack").checked = localStorage.getItem("putBack") === "true";
-        document.getElementById("preview").checked = localStorage.getItem("preview") === "true";
+        document.getElementById("explorer-config-sourceFolder").value = localStorage.getItem("explorerConfigSourceFolder");
+        document.getElementById("explorer-config-outputFolder").value = localStorage.getItem("explorerConfigOutputFolder");
+        document.getElementById("explorer-config-videoFolder").checked = localStorage.getItem("explorerConfigVideoFolder") === "true";
+        document.getElementById("explorer-config-putBack").checked = localStorage.getItem("explorerConfigPutBack") === "true";
+        document.getElementById("explorer-config-preview").checked = localStorage.getItem("explorerConfigPreview") === "true";
         showActionsHistory();
+
+        document.getElementById("calendar-config-scan-folder").value = localStorage.getItem("calendarConfigScanFolder");
     }
 </script>
 
