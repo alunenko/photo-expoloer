@@ -3,6 +3,8 @@ const fs = require('fs');
 const fsExtra = require('fs-extra');
 const path = require('path');
 const util = require('util');
+const EventEmitter = require('events');
+const { WebSocketServer } = require('ws');
 
 const app = express();
 const port = 3000;
@@ -235,6 +237,88 @@ async function moveFile(file) {
 
     return result;
 }
+
+<!--region ScanFolder-->
+const webSocetPort = 4200;
+
+class FolderScanner extends EventEmitter {
+    async scanDirectory(dir) {
+        return new Promise(resolve => {
+            console.log(`Scanning directory: ${dir}`);
+            fs.readdir(dir, { withFileTypes: true }, async (err, dirs) => {
+                if (err) {
+                    this.emit('error', { message: err.message, stack: err.stack });
+                    console.error(`Error reading directory ${dir}:`, err);
+                    return;
+                }
+                await Promise.all(
+                    dirs.map(async (item) => {
+                        const itemPath = path.join(dir, item.name);
+                        if (item.isDirectory()) {
+                            const result = { name: item.name, type: 'directory', path: itemPath };
+                            console.log(result);
+                            this.emit('progress', result);
+                            // Recursively scan subdirectories
+                            await this.scanDirectory(itemPath);
+                        } else {
+                            const result = { name: item.name, type: 'file', path: itemPath, ext: path.extname(item.name) };
+                            console.log(result);
+                            this.emit('progress', result);
+                        }
+                    })
+                ).catch((err) => {
+                    this.emit('error', {message: err.message, stack: err.stack});
+                });
+
+                resolve();
+            });
+        });
+    }
+
+    async startScan(rootPath) {
+        this.emit('start', { path: rootPath });
+        console.log('Scanning started...');
+        await this.scanDirectory(rootPath);
+        this.emit('end', { path: rootPath });
+        console.log('Scanning ended.');
+    }
+}
+
+// WebSocket server setup
+const server = new WebSocketServer({ port: webSocetPort });
+
+server.on('connection', (ws) => {
+    console.log('Client connected');
+    const folderScanner = new FolderScanner();
+
+    folderScanner.on('progress', (data) => {
+        ws.send(JSON.stringify({ type: 'progress', data }));
+    });
+
+    folderScanner.on('error', (error) => {
+        ws.send(JSON.stringify({ type: 'error', error }));
+    });
+
+    folderScanner.on('start', (data) => {
+        ws.send(JSON.stringify({ type: 'start', data }));
+    });
+
+    folderScanner.on('end', (data) => {
+        ws.send(JSON.stringify({ type: 'end', data }));
+    });
+
+    ws.on('message', (message) => {
+        const { type, path } = JSON.parse(message);
+        if (type === 'startScan') {
+            folderScanner.startScan(path);
+        }
+    });
+
+    ws.on('close', () => {
+        console.log('Client disconnected');
+    });
+});
+<!--endregion-->
 
 app.listen(port, () => {
     console.log(`Server listening at http://localhost:${port}`);

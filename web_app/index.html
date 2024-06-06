@@ -330,6 +330,12 @@
     <h1>Calendar</h1>
     <form>
         <fieldset>
+            <legend>Scan folder</legend>
+            <label>Source path: <input id="calendarFolder" type="text"></label>
+            <div id="output"></div>
+            <button onclick="calendarScan()">Scan</button>
+        </fieldset>
+        <fieldset>
             <legend>Pick a date</legend>
             <label><input type="text" id="calendar-month" placeholder="month"/></label>
             <button type="button" onclick="generateCalendar()">Generate</button>
@@ -1262,6 +1268,56 @@
     function toggleCollapse(event, elementId) {
         event.target.textContent = event.target.textContent === "+" ? "-" : "+";
         document.querySelector(`#${elementId}`).classList.toggle("show");
+    }
+
+    function calendarScan () {
+        const path = document.getElementById("calendarFolder").value;
+        console.log(path);
+        const output = document.getElementById('output');
+        const ws = new WebSocket("ws://localhost:4200");
+        const firstLevelFoldersLoader = {};
+
+        ws.onopen = () => {
+            ws.send(JSON.stringify({ type: 'startScan', path: path }));
+        };
+
+        ws.onmessage = (event) => {
+            const { type, data, error } = JSON.parse(event.data);
+            if (type === 'progress') {
+
+                // p.textContent += '\n' + data.name + (data.type === 'directory' ? '/' : '');
+                // if(data.type === "file" && data.ext.match(/\.(jpg|dng|jpeg)$/i)) {
+                //     const p = document.createElement("p");
+                //     p.textContent = data.path;
+                //     output.appendChild(p);
+                // }
+
+                output.textContent = data.path;
+
+                <!--region only years-->
+                // const regex = new RegExp(`^${path}/?(.*)`);
+                // const match = data.path.match(regex);
+                //
+                // const extractedPath = match ? match[1] : data.path;
+                // firstLevelFoldersLoader[extractedPath.split("/")[0]]="";
+                // console.log(firstLevelFoldersLoader);
+                // output.textContent = "";
+                //
+                // Object.keys(firstLevelFoldersLoader).forEach((folderName) => {
+                //     const p = document.createElement("p");
+                //     p.textContent = folderName;
+                //     output.appendChild(p);
+                // });
+                <!--endregion-->
+
+            } else if (type === 'error') {
+                output.textContent = '\nError: ' + error.message;
+            } else if (type === 'start') {
+                output.textContent = 'Scanning started...\n';
+            } else if (type === 'end') {
+                output.textContent = '\nScanning ended.';
+            }
+        };
     }
 
     window.onload = () => {
