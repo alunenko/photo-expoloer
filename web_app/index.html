@@ -1295,7 +1295,6 @@
 
     function calendarScanFolder () {
         const path = document.getElementById("calendar-config-scan-folder").value;
-        console.log(path);
         const output = document.getElementById('output');
         const ws = new WebSocket("ws://localhost:4200");
         const firstLevelFoldersLoader = {};
