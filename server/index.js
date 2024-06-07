@@ -76,7 +76,7 @@ app.post('/processFiles', (req, res) => {
                     result.blob = await getImageBlob(path.join(currentSourceFolder, fileName));
                 }
 
-                console.log(result.origin_name, result.output_path_log);
+                // console.log(result.origin_name, result.output_path_log);
 
                 return result;
             })
@@ -121,7 +121,7 @@ app.post('/moveFile', (req, res) => {
                     const oldFileName = path.basename(file.output_path_log, path.extname(file.output_path_log));
                     // const output_path_new_filename = path.join(path.dirname(file.output_path_log), `${oldFileName}.${timestamp}${path.extname(file.output_path_log)}`); // will create a new file which is probably already there
                     const output_path_new_filename = path.join(path.dirname(file.output_path_log), `${oldFileName} ${filePostfix}${path.extname(file.output_path_log)}`); // will create a new file which is probably already there
-                    console.log(output_path_new_filename);
+                    // console.log(output_path_new_filename);
                     file.output_path_log = output_path_new_filename;
 
                     const messageMoveFile = await moveFile(file);
@@ -184,9 +184,9 @@ function parseFileName(fileName) {
 
     if (match) {
         dateGroups = match.slice(1).filter(Boolean); // Filter out undefined groups
-        console.log(`Match found for ${fileName}: ${dateGroups}`);
+        // console.log(`Match found for ${fileName}: ${dateGroups}`);
     } else {
-        console.log(`No match found for ${fileName}`);
+        // console.log(`No match found for ${fileName}`);
     }
 
     return {
@@ -213,7 +213,7 @@ async function getImageBlob(path) {
         console.error('Error reading the file:', err);
     }
 
-    console.log(path);
+    // console.log(path);
     return base64Data;
 }
 
@@ -256,13 +256,28 @@ class FolderScanner extends EventEmitter {
                         const itemPath = path.join(dir, item.name);
                         if (item.isDirectory()) {
                             const result = { name: item.name, type: 'directory', path: itemPath };
-                            console.log(result);
+                            // console.log(result);
                             this.emit('progress', result);
                             // Recursively scan subdirectories
                             await this.scanDirectory(itemPath);
                         } else {
-                            const result = { name: item.name, type: 'file', path: itemPath, ext: path.extname(item.name) };
-                            console.log(result);
+                            // const result = { name: item.name, type: 'file', path: itemPath, ext: path.extname(item.name) };
+                            const extension = path.extname(item.name);
+                            const {year, month, day, hours, minutes, seconds, isBlob} = parseFileName(item.name);
+                            const result = {
+                                origin_name: item.name,
+                                path: {
+                                    year,
+                                    month,
+                                    day,
+                                    hours,
+                                    minutes,
+                                    seconds,
+                                    extension
+                                },
+                                source_path_log: itemPath
+                            };
+                            // console.log(result);
                             this.emit('progress', result);
                         }
                     })

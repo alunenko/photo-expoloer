@@ -198,7 +198,7 @@
             display: flex;
             gap: 20px;
             overflow-x: auto;
-            justify-content: center;
+            /*justify-content: center;*/
             padding: 20px;
             box-sizing: border-box;
         }
@@ -213,7 +213,7 @@
         }
         .preview .scene img {
             width: 100%;
-            height: calc(100% - 37px - (21px * 2)); /* h1 height + margin */
+            height: calc(100% - 37px - (21px * 2) - 18px - (16px * 2)); /* h1 height + margin */
             object-fit: contain;
             padding: 20px;
             box-sizing: border-box;
@@ -333,23 +333,12 @@
         <fieldset>
             <legend>General</legend>
             <label>Scan folder<input id="calendar-config-scan-folder" type="text"></label>
+            <label>Saved data<input type="file" id="global-data"></label>
         </fieldset>
         <fieldset>
             <legend>Pick a date</legend>
-            <label><select id="calendar-month">
+            <label><select id="calendar-config-month">
                 <option value="" disabled="disabled" selected="selected"></option>
-                <option value="0">January</option>
-                <option value="1">February</option>
-                <option value="2">March</option>
-                <option value="3">April</option>
-                <option value="4">May</option>
-                <option value="5">June</option>
-                <option value="6">July</option>
-                <option value="7">August</option>
-                <option value="8">September</option>
-                <option value="9">October</option>
-                <option value="10">November</option>
-                <option value="11">December</option>
             </select></label>
         </fieldset>
         <fieldset>
@@ -357,6 +346,8 @@
             <button type="button" onclick="saveCalendarConfig()">Save config</button>
             <button type="button" onclick="deleteCalendarConfig()">Delete config</button>
             <button onclick="calendarScanFolder()">Scan folder</button>
+            <button onclick="loadScanFolder()">Load scan folder</button>
+<!--            <button onclick="deleteScanResults()">Delete scan results</button>-->
             <button type="button" onclick="generateCalendar()">Generate calendar</button>
             <button id="downloadButton">Download as PNG</button>
         </fieldset>
@@ -392,18 +383,33 @@
     });
 </script>
 <script>
-    const globalData = {};
-    const arrangedData = {};
+    let globalData = {};
+    let arrangedData = {};
     const blobType = {
         png: "image/png",
         mp4: "video/mp4",
         mov: "video/quicktime"
     };
+    const monthNames = {
+        1: "January",
+        2: "February",
+        3: "March",
+        4: "April",
+        5: "May",
+        6: "June",
+        7: "July",
+        8: "August",
+        9: "September",
+        10: "October",
+        11: "November",
+        12: "December"
+    };
+    let loadedCalendarData;
     /* region Explorer */
     function fetchExplorerFiles() {
         const sourceFolder = document.getElementById('explorer-config-sourceFolder').value;
         const outputFolder = document.getElementById('explorer-config-outputFolder').value;
-        const videoFolder = document.getElementById('videoFolder').checked;
+        const videoFolder = document.getElementById('explorer-config-videoFolder').checked;
 
         const apiUrl = 'http://localhost:3000/processFiles';
 
@@ -913,11 +919,6 @@
         document.querySelector('#calendar-content').appendChild(heading);
     }
 
-    function generateCalendar() {
-        globalData.files.forEach(file => arrangeInputData(file));
-        fn2();
-    }
-
     function addCalendarShiftDay(numberOfFirstDayInMonth) {
         for(let j = 1; j <= numberOfFirstDayInMonth; j++) {
             let divElement = document.createElement('div');
@@ -955,11 +956,46 @@
         return number < 10 ? `0${number}` : `${number}`;
     }
 
-    function fn2() {
-        console.log('fn2');
+    function generateCalendar() {
         console.log(arrangedData);
         const currentYear = new Date().getFullYear();
-        const userPickMonth = document.querySelector('#calendar-month').value;
+        const isLoadData = localStorage.getItem("savedCalendar");
+
+        if(isLoadData) {
+            loadedCalendarData = JSON.parse(localStorage.getItem("savedCalendar"));
+            console.log("saved data", loadedCalendarData);
+
+            Object.keys(loadedCalendarData).forEach((month) => {
+                console.log(`month ${month}`);
+
+                Object.keys(loadedCalendarData[month]).forEach((day) => {
+                    console.log(`day ${day}`);
+
+                    Object.keys(loadedCalendarData[month][day]).forEach((year) => {
+                        console.log(`year ${year}`);
+
+                        Object.keys(loadedCalendarData[month][day][year]).forEach((loadedFile) => {
+                            console.log(`name ${loadedFile.name}`);
+
+                            const loadedName = loadedCalendarData[month][day][year][loadedFile].origin_name;
+
+                            arrangedData[month][day][year].forEach((arrangedFile) => {
+                                const arrangedName = arrangedFile.origin_name;
+                                console.log(`loadedName: ${loadedName}`, `arrangedName: ${arrangedName}`, arrangedName === loadedName);
+
+                                if(arrangedName === loadedName) {
+                                    arrangedFile["selected"] = loadedCalendarData[month][day][year][loadedFile]["selected"];
+                                }
+                            });
+                        })
+                    });
+                })
+            });
+        } else {
+            localStorage.setItem("savedCalendar", JSON.stringify({}));
+        }
+
+        const userPickMonth = document.querySelector('#calendar-config-month').value;
         const currentMonth = userPickMonth ? userPickMonth - 1 : Object.keys(arrangedData)[0] - 1;
         // const currentMonthLeadZero = currentMonth + 1 < 10 ? `0${currentMonth + 1}` : `${currentMonth + 1}`;
         const currentMonthLeadZero = leadZero(currentMonth + 1);
@@ -997,12 +1033,14 @@
                 container.style.width = '100%';
                 container.style.height = '200px';
                 container.setAttribute("day", dayInMonth);
+                container.setAttribute("month", currentMonth + 1);
 
                 let totalPhotoPerDay = 0;
 
                 // all years in this month+day
                 Object.entries(arrangedData[currentMonthLeadZero][dayInMonthLeadZero]).forEach((item) => {
                     // console.log(item);
+                    totalPhotoPerDay += arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].length;
                     arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].forEach(async (file) => {
                         if(file.selected) {
                             let wrapper = document.createElement('div');
@@ -1022,8 +1060,6 @@
                             container.appendChild(wrapper);
                         }
                     });
-
-                    totalPhotoPerDay = arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].length;
                 });
 
                 if(totalPhotoPerDay > 1) {
@@ -1075,7 +1111,7 @@
         document.querySelector(".preview") && document.querySelector(".preview").remove(); // close old, before open new
         // console.log('dailyImagesPreview', event);
         // console.log(event.target.attributes.day.value, document.querySelector('#calendar-month').value);
-        const month = leadZero(document.querySelector('#calendar-month').value);
+        const month = leadZero(document.querySelector('#calendar-config-month').value);
         const findDay = findParentWithAttribute(event.target, "day").attributes.day.value;
         const day = leadZero(findDay);
 
@@ -1086,12 +1122,17 @@
         scene.className = "scene";
 
         const titleDay = document.createElement("h1");
-        titleDay.innerText = day;
+        titleDay.innerText = `${monthNames[+month]} ${findDay}`;
         titleDay.style.textAlign = "center";
         scene.appendChild(titleDay);
 
         const sceneImg = document.createElement("img");
         scene.appendChild(sceneImg);
+
+        const filePath = document.createElement("p");
+        filePath.id = "file-path";
+        filePath.style.textAlign = "center";
+        scene.appendChild(filePath);
 
         const pickThisImage = document.createElement("input");
         pickThisImage.type = "checkbox";
@@ -1123,26 +1164,38 @@
         close.onclick = () => {
             preview.remove();
             document.querySelector('#calendar-content').innerHTML = '';
-            fn2();
+            generateCalendar();
         };
 
         let av = 0;
 
         Object.keys(arrangedData[month][day]).forEach(year => {
+            // console.log(`year ${year}: `, arrangedData[month][day][year].length);
+            av += arrangedData[month][day][year].length;
             arrangedData[month][day][year].forEach(async (file) => {
-                av = arrangedData[month][day][year].length;
                 // console.log(file);
+                // console.log(`year ${year}: `, arrangedData[month][day][year].length);
                 const container = document.createElement("div");
                 container.style.position = "relative";
                 const inputRadio = document.createElement("input");
                 inputRadio.type = "radio";
                 inputRadio.name = "selected";
+                inputRadio.checked = file["selected"];
+                console.log(file["selected"]);
                 inputRadio.addEventListener("change", (event) => {
-                    console.log(arrangedData[month][day][year]);
-                    console.log(event);
-                    console.log(file);
+                    // console.log(arrangedData[month][day][year]);
+                    // console.log(event);
+                    // console.log(file);
                     arrangedData[month][day][year].forEach(file => file["selected"] = false);
                     file["selected"] = event.target.checked;
+
+                    const saveSelectedData = localStorage.getItem("savedCalendar") ? JSON.parse(localStorage.getItem("savedCalendar")) : {};
+                    saveSelectedData[file.path.month] = saveSelectedData[file.path.month] || {};
+                    saveSelectedData[file.path.month][file.path.day] = saveSelectedData[file.path.month][file.path.day] || {};
+                    saveSelectedData[file.path.month][file.path.day][file.path.year] = saveSelectedData[file.path.month][file.path.day][file.path.year] || [];
+                    saveSelectedData[file.path.month][file.path.day][file.path.year].push(file);
+
+                    localStorage.setItem("savedCalendar", JSON.stringify(saveSelectedData));
                 });
 
                 const img = document.createElement("img");
@@ -1151,6 +1204,7 @@
                 img.src = getBlob(blobType.png, fileBlob.blob);
                 img.onclick = () => {
                     scene.querySelector("img").src = img.src;
+                    scene.querySelector("#file-path").innerText = file.source_path_log;
                 };
                 document.querySelector(".carousel-loader-loading").innerText = document.querySelector(".carousel").childElementCount + 1;
                 container.appendChild(inputRadio);
@@ -1293,11 +1347,12 @@
         document.querySelector(`#${elementId}`).classList.toggle("show");
     }
 
-    function calendarScanFolder () {
+    function calendarScanFolder() {
         const path = document.getElementById("calendar-config-scan-folder").value;
         const output = document.getElementById('output');
         const ws = new WebSocket("ws://localhost:4200");
         const firstLevelFoldersLoader = {};
+        globalData.files = [];
 
         ws.onopen = () => {
             ws.send(JSON.stringify({ type: 'startScan', path: path }));
@@ -1306,40 +1361,72 @@
         ws.onmessage = (event) => {
             const { type, data, error } = JSON.parse(event.data);
             if (type === 'progress') {
+                output.textContent = data.source_path;
 
-                // p.textContent += '\n' + data.name + (data.type === 'directory' ? '/' : '');
-                // if(data.type === "file" && data.ext.match(/\.(jpg|dng|jpeg)$/i)) {
-                //     const p = document.createElement("p");
-                //     p.textContent = data.path;
-                //     output.appendChild(p);
-                // }
-
-                output.textContent = data.path;
-
-                <!--region only years-->
-                // const regex = new RegExp(`^${path}/?(.*)`);
-                // const match = data.path.match(regex);
-                //
-                // const extractedPath = match ? match[1] : data.path;
-                // firstLevelFoldersLoader[extractedPath.split("/")[0]]="";
-                // console.log(firstLevelFoldersLoader);
-                // output.textContent = "";
-                //
-                // Object.keys(firstLevelFoldersLoader).forEach((folderName) => {
-                //     const p = document.createElement("p");
-                //     p.textContent = folderName;
-                //     output.appendChild(p);
-                // });
-                <!--endregion-->
-
+                if (data.type !== 'directory' && (data.path.extension !== '.mp4' && data.path.extension !== '.mov')) {
+                    globalData.files.push(data);
+                }
             } else if (type === 'error') {
                 output.textContent = '\nError: ' + error.message;
             } else if (type === 'start') {
                 output.textContent = 'Scanning started...\n';
             } else if (type === 'end') {
                 output.textContent = '\nScanning ended.';
+                console.log(globalData);
+                // globalData + localstoragedata
+                globalData.files.forEach(file => arrangeInputData(file));
+                // saveScanResults();
+                updateMonthSelectOptions();
+                output.textContent = '\nSelect month.';
             }
         };
+    }
+
+    function updateMonthSelectOptions() {
+        const select = document.querySelector("#calendar-config-month");
+
+        const availableMonths = Object.keys(arrangedData).sort();
+        availableMonths.forEach((month) => {
+            const option = document.createElement("option");
+            option.value = +month;
+            option.textContent = monthNames[+month];
+            select.appendChild(option);
+        })
+    }
+
+    function loadScanFolder() { /* from file */
+        document.querySelector('#global-data').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            console.log(file);
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    globalData = JSON.parse(content);
+                    savedDataToGlobalData();
+                    globalData.files.forEach(file => arrangeInputData(file));
+                    updateMonthSelectOptions();
+                };
+                reader.onerror = function(e) {
+                    console.error("File could not be read! Code " + e.target.error.code);
+                };
+                reader.readAsText(file);
+            }
+        });
+    }
+
+    function savedDataToGlobalData() {
+
+    }
+
+    function saveScanResults() {
+        localStorage.setItem("calendar-global-data", JSON.stringify(globalData));
+        localStorage.setItem("calendar-arrange-input-data", JSON.stringify(arrangedData));
+    }
+
+    function deleteScanResults() {
+        localStorage.removeItem("calendar-global-data");
+        localStorage.removeItem("calendar-arrange-input-data");
     }
 
     function deleteExplorerConfig() {
@@ -1359,6 +1446,10 @@
         showActionsHistory();
 
         document.getElementById("calendar-config-scan-folder").value = localStorage.getItem("calendarConfigScanFolder");
+
+        // localStorage.getItem("calendar-global-data") && (globalData = JSON.parse(localStorage.getItem("calendar-global-data")));
+        // localStorage.getItem("calendar-arrange-input-data") && (arrangedData = JSON.parse(localStorage.getItem("calendar-arrange-input-data")));
+        // Object.keys(arrangedData).length && updateMonthSelectOptions();
     }
 </script>
 
