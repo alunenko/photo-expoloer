@@ -291,7 +291,7 @@
             <legend>Actions</legend>
             <div>
                 <button type="button" onclick="saveExplorerConfig()">Save config</button>
-                <button type="button" onclick="deleteExplorerConfig()">Save config</button>
+                <button type="button" class="btn-danger" onclick="deleteExplorerConfig()">Delete config</button>
                 <button type="button" onclick="fetchExplorerFiles()">Fetch Files</button>
             </div>
         </fieldset>
@@ -527,7 +527,7 @@
                                 globalData.files[index].output_path_log = globalData.files[index].source_path_log;
                                 globalData.files[index].source_path_log = output_path_log;
                             } else {
-                                let actionsHistory = localStorage.getItem("actionsHistory");
+                                let actionsHistory = localStorage.getItem("explorerActionsHistory");
                                 try {
                                     actionsHistory = actionsHistory ? JSON.parse(actionsHistory) : [];
                                 } catch (e) {
@@ -535,7 +535,7 @@
                                 }
 
                                 actionsHistory.push(globalData.files[index]);
-                                localStorage.setItem("actionsHistory", JSON.stringify(actionsHistory));
+                                localStorage.setItem("explorerActionsHistory", JSON.stringify(actionsHistory));
                                 showActionsHistory();
 
                                 globalData.files.splice(index, 1);
@@ -769,11 +769,11 @@
     }
 
     function saveExplorerConfig() {
-        localStorage.setItem("explorer-config-sourceFolder", document.getElementById("explorer-config-sourceFolder").value);
-        localStorage.setItem("explorer-config-outputFolder", document.getElementById("explorer-config-outputFolder").value);
-        localStorage.setItem("explorer-config-videoFolder", document.getElementById("explorer-config-videoFolder").checked);
-        localStorage.setItem("explorer-config-putBack", document.getElementById("explorer-config-putBack").checked);
-        localStorage.setItem("explorer-config-preview", document.getElementById("explorer-config-preview").checked);
+        localStorage.setItem("explorerConfigSourceFolder", document.getElementById("explorer-config-sourceFolder").value);
+        localStorage.setItem("explorerConfigOutputFolder", document.getElementById("explorer-config-outputFolder").value);
+        localStorage.setItem("explorerConfigVideoFolder", document.getElementById("explorer-config-videoFolder").checked);
+        localStorage.setItem("explorerConfigPutBack", document.getElementById("explorer-config-putBack").checked);
+        localStorage.setItem("explorerConfigPreview", document.getElementById("explorer-config-preview").checked);
     }
 
     function saveCalendarConfig() {
@@ -854,7 +854,7 @@
     }
 
     function showActionsHistory() {
-        let historyData = localStorage.getItem("explorerConfigActionsHistory");
+        let historyData = localStorage.getItem("explorerActionsHistory");
 
         try {
             historyData = historyData ? JSON.parse(historyData) : [];
