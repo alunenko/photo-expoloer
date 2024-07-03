@@ -5,6 +5,7 @@ const path = require('path');
 const util = require('util');
 const EventEmitter = require('events');
 const { WebSocketServer } = require('ws');
+const { spawn} = require('child_process');
 
 const app = express();
 const port = 3000;
@@ -164,6 +165,11 @@ app.post('/getBlobImage', async (req,res) => {
     return res.json({blob: await getImageBlob(req.body.src)});
 });
 
+app.post('/dotClean', async (req,res) => {
+    await dotClean(req.body.path);
+    return res.json({"success": true});
+});
+
 function areFilesEqual(path1, path2) {
     try {
         const content1 = fs.readFileSync(path1, 'utf-8');
@@ -236,6 +242,27 @@ async function moveFile(file) {
     }
 
     return result;
+}
+
+async function dotClean(path) {
+    // Execute dot_clean command with arguments
+    const dotCleanProcess = spawn('dot_clean', [path]);
+
+    dotCleanProcess.stdout.on('data', (data) => {
+        console.log(`stdout: ${data}`);
+    });
+
+    dotCleanProcess.stderr.on('data', (data) => {
+        console.error(`stderr: ${data}`);
+    });
+
+    dotCleanProcess.on('close', (code) => {
+        console.log(`dot_clean process exited with code ${code}`);
+    });
+
+    dotCleanProcess.on('error', (err) => {
+        console.error(`Error executing dot_clean: ${err}`);
+    });
 }
 
 <!--region ScanFolder-->

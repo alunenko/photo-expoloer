@@ -350,6 +350,7 @@
 <!--            <button onclick="deleteScanResults()">Delete scan results</button>-->
             <button type="button" onclick="generateCalendar()">Generate calendar</button>
             <button id="downloadButton">Download as PNG</button>
+            <button id="dotClean" onclick="dotClean()">*OS_X: dot_clean for scan_folder</button>
         </fieldset>
     </form>
     <div class="flex">
@@ -849,7 +850,8 @@
     }
 
     function eraseActionsHistory() {
-        localStorage.setItem("actionsHistory", []);
+        localStorage.setItem("explorerActionsHistory", []);
+        document.getElementById("actions_history").innerHTML = '';
         showActionsHistory();
     }
 
@@ -916,7 +918,63 @@
         ];
         const heading = document.createElement('h1');
         heading.innerText = `${monthNames[month]} ${year}`;
+
         document.querySelector('#calendar-content').appendChild(heading);
+
+        const weekDayNames = {
+            1: {
+                short: "mon",
+                full: "monday"
+            },
+            2: {
+                short: "tue",
+                full: "tuesday"
+            },
+            3: {
+                short: "wed",
+                full: "wednesday"
+            },
+            4: {
+                short: "tue",
+                full: "tuesday"
+            },
+            5: {
+                short: "fri",
+                full: "friday"
+            },
+            6: {
+                short: "sat",
+                full: "saturday"
+            },
+            7: {
+                short: "sun",
+                full: "sunday"
+            }
+        };
+        const weekdaysContainer = document.createElement('div');
+        weekdaysContainer.style.width = "100%";
+        weekdaysContainer.style.height = "unset";
+        const weekdaysGrid = document.createElement('div');
+        weekdaysGrid.style.display = 'flex';
+        weekdaysGrid.style.width = '100%';
+        weekdaysGrid.style.gap = '10px';
+
+        Object.keys(weekDayNames).forEach((day) => {
+            const dayEl = document.createElement('div');
+            dayEl.textContent = weekDayNames[day].short;
+            dayEl.style.flex = '1 1 auto';
+            dayEl.style.alignContent = 'center';
+            dayEl.style.width = 'calc((100% - (10px * 2) * 5) / 7)';
+            dayEl.style.height = '40px';
+            dayEl.style.textAlign = 'center';
+            dayEl.style.backgroundColor = 'black';
+            dayEl.style.color = 'white';
+            dayEl.style.textTransform = 'uppercase';
+            weekdaysGrid.appendChild(dayEl);
+        });
+
+        weekdaysContainer.appendChild(weekdaysGrid);
+        document.querySelector('#calendar-content').appendChild(weekdaysContainer);
     }
 
     function addCalendarShiftDay(numberOfFirstDayInMonth) {
@@ -979,7 +1037,8 @@
 
                             const loadedName = loadedCalendarData[month][day][year][loadedFile].origin_name;
 
-                            arrangedData[month][day][year].forEach((arrangedFile) => {
+
+                            arrangedData[month][day][year] && arrangedData[month][day][year].forEach((arrangedFile) => {
                                 const arrangedName = arrangedFile.origin_name;
                                 console.log(`loadedName: ${loadedName}`, `arrangedName: ${arrangedName}`, arrangedName === loadedName);
 
@@ -1413,6 +1472,35 @@
                 reader.readAsText(file);
             }
         });
+    }
+
+    async function dotClean() {
+        const apiUrl = 'http://localhost:3000/dotClean';
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json', // Adjust based on your server's expectations
+                    // Add any other headers if needed
+                },
+                body: JSON.stringify({
+                    path: document.getElementById("calendar-config-scan-folder").value
+                }),
+            });
+
+            const dotCleanResponse = await response.json();
+            console.log(dotCleanResponse);
+
+            return dotCleanResponse;
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+        } catch (error) {
+            console.error('DotCleanError:', error);
+            throw error;
+        }
     }
 
     function savedDataToGlobalData() {
