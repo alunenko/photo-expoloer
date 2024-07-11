@@ -184,7 +184,8 @@ function areFilesEqual(path1, path2) {
 
 // Function to parse the file name and extract year, month, and day
 function parseFileName(fileName) {
-    const fnbasedOnDateRegex = /(?:(\d{4})-(\d{2})-(\d{2})(?: (\d{2})\.(\d{2})\.(\d{2}))?|IMG_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})|Collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*|collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*)/;
+    // const fnbasedOnDateRegex = /(?:(\d{4})-(\d{2})-(\d{2})(?: (\d{2})\.(\d{2})\.(\d{2}))?|IMG_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})|Collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*|collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*)/;
+    const fnbasedOnDateRegex = /(?:(\d{4})-(\d{2})-(\d{2})(?: (\d{2})\.(\d{2})\.(\d{2}))?|IMG_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})|Collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*|collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*|.*_(\d{4})(\d{2})(\d{2}))/;
     const match = fileName.match(fnbasedOnDateRegex); // fileNameBasedOnDateRegex
     let dateGroups;
 
