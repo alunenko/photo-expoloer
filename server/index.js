@@ -43,7 +43,7 @@ app.post('/processFiles', (req, res) => {
         // Process each file
         const processedFiles = await Promise.all(
             files.filter((fileName) => {
-                return fileName.match(/\.(jpg|mp4|mov|dng|jpeg)$/i);
+                return fileName.match(/\.(jpg|jpeg|png|dng|mp4|mov)$/i);
             }).map(async (fileName) => {
                 let result = {};
                 let output_path = '';
@@ -184,8 +184,8 @@ function areFilesEqual(path1, path2) {
 
 // Function to parse the file name and extract year, month, and day
 function parseFileName(fileName) {
-    // const fnbasedOnDateRegex = /(?:(\d{4})-(\d{2})-(\d{2})(?: (\d{2})\.(\d{2})\.(\d{2}))?|IMG_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})|Collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*|collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*)/;
-    const fnbasedOnDateRegex = /(?:(\d{4})-(\d{2})-(\d{2})(?: (\d{2})\.(\d{2})\.(\d{2}))?|IMG_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})|Collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*|collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*|.*_(\d{4})(\d{2})(\d{2}))/;
+    const fnbasedOnDateRegex = /(?:(\d{4})-(\d{2})-(\d{2})(?: (\d{2})\.(\d{2})\.(\d{2}))?|IMG_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})|Collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*|collage_(\d{4})(\d{2})(\d{2})(?:_(\d{2})(\d{2})(\d{2}))?_.*|(\d{4})\.(\d{2})\.(\d{2})|(\d{8})_(\d{6})|IMG-(\d{8})-WA(\d+)|(\d{8})_(\d{6}))/;
+
     const match = fileName.match(fnbasedOnDateRegex); // fileNameBasedOnDateRegex
     let dateGroups;
 
@@ -196,10 +196,17 @@ function parseFileName(fileName) {
         // console.log(`No match found for ${fileName}`);
     }
 
+    const minYear = 1900;
+    const maxYear = new Date().getFullYear();
+    const minMonth = 1;
+    const maxMonth = 12;
+    const minDay = 1;
+    const maxDay = 31;
+
     return {
-        year: dateGroups && dateGroups[0] ? dateGroups[0] : '0000',
-        month: dateGroups && dateGroups[1] ? dateGroups[1] : '00',
-        day: dateGroups && dateGroups[2] ? dateGroups[2] : '00',
+        year: (dateGroups && (dateGroups[0] >= minYear && dateGroups[0] <= maxYear)) ? dateGroups[0] : '0000',
+        month: (dateGroups && (dateGroups[1] >= minMonth && dateGroups[1] <= maxMonth)) ? dateGroups[1] : '00',
+        day: (dateGroups && (dateGroups[2] >= minDay && dateGroups[2] <= maxDay)) ? dateGroups[2] : '00',
         hours: dateGroups && dateGroups[3] ? dateGroups[3] : '00',
         minutes: dateGroups && dateGroups[4] ? dateGroups[4] : '00',
         seconds: dateGroups && dateGroups[5] ? dateGroups[5] : '00',
@@ -292,6 +299,7 @@ class FolderScanner extends EventEmitter {
                             // const result = { name: item.name, type: 'file', path: itemPath, ext: path.extname(item.name) };
                             const extension = path.extname(item.name);
                             const {year, month, day, hours, minutes, seconds, isBlob} = parseFileName(item.name);
+
                             const result = {
                                 origin_name: item.name,
                                 path: {

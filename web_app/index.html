@@ -353,11 +353,20 @@
             <button id="dotClean" onclick="dotClean()">*OS_X: dot_clean for scan_folder</button>
         </fieldset>
     </form>
-    <div class="flex">
+    <div class="flex" style="flex-direction: column;">
 <!--        <div id="print" class="print a4-size m-album">-->
         <div id="print" class="print">
             <div id="calendar-content" class="calendar">
                 <p id="output">No scanned data yet</p>
+            </div>
+        </div>
+        <div class="flex" id="missed_files_section" style="display:none;">
+            <div class="content">
+                <div class="flex" style="align-items: center">
+                    <h2>You have <span id="missed_files_amount"></span> missed files</h2>
+                    <button onclick="toggleCollapse(event, 'missed_files')" style="height: 37px">+</button>
+                </div>
+                <div id="missed_files" class="collapse"></div>
             </div>
         </div>
     </div>
@@ -1420,7 +1429,7 @@
         ws.onmessage = (event) => {
             const { type, data, error } = JSON.parse(event.data);
             if (type === 'progress') {
-                output.textContent = data.source_path;
+                output.textContent = data.source_path_log;
 
                 if (data.type !== 'directory' && (data.path.extension !== '.mp4' && data.path.extension !== '.mov')) {
                     globalData.files.push(data);
@@ -1435,10 +1444,32 @@
                 // globalData + localstoragedata
                 globalData.files.forEach(file => arrangeInputData(file));
                 // saveScanResults();
+                arrangedData["00"]["00"]["0000"].forEach(file => showMissedDataInFiles(file.source_path_log));
                 updateMonthSelectOptions();
                 output.textContent = '\nSelect month.';
+                ws.close();
             }
         };
+
+        ws.onclose = () => {
+            console.log('client disconnected')
+        }
+    }
+
+    function showMissedDataInFiles(path) {
+        document.querySelector("#missed_files_section").style.display = "block";
+
+        const rootEl = document.querySelector("#missed_files");
+
+        document.querySelector("#missed_files_amount").textContent = `(${arrangedData["00"]["00"]["0000"].length})`;
+
+        const filePathEl = document.createElement("div");
+        filePathEl.className = "file";
+        const filePathSpanEl = document.createElement("span");
+        filePathSpanEl.textContent = path;
+
+        filePathEl.appendChild(filePathSpanEl);
+        rootEl.appendChild(filePathEl);
     }
 
     function updateMonthSelectOptions() {
@@ -1464,6 +1495,7 @@
                     globalData = JSON.parse(content);
                     savedDataToGlobalData();
                     globalData.files.forEach(file => arrangeInputData(file));
+                    arrangedData["00"]["00"]["0000"].forEach(file => showMissedDataInFiles(file.source_path_log));
                     updateMonthSelectOptions();
                 };
                 reader.onerror = function(e) {
