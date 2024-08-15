@@ -26,6 +26,9 @@
         .file img {
             object-fit: contain;
         }
+        .file.disabled {
+            color: #b3b3b3;
+        }
         input {
             border: 2px groove rgb(192, 192, 192);
         }
@@ -130,6 +133,8 @@
             top: 0;
             left: 0;
             background-color: white;
+            padding: 3px;
+            border-bottom-right-radius: 5px;
         }
         .month-cell .m-day,
         .m-no-photo-space .m-day {
@@ -292,7 +297,9 @@
             <div>
                 <button type="button" onclick="saveExplorerConfig()">Save config</button>
                 <button type="button" class="btn-danger" onclick="deleteExplorerConfig()">Delete config</button>
-                <button type="button" onclick="fetchExplorerFiles()">Fetch Files</button>
+<!--                <button type="button" onclick="fetchExplorerFiles()">Fetch Files</button>-->
+                <button type="button" onclick="scanFolder('explorer', document.getElementById('explorer-config-sourceFolder').value, document.getElementById('explorer-config-outputFolder').value)">Fetch Files</button>
+                <p id="output"></p>
             </div>
         </fieldset>
     </form>
@@ -342,15 +349,30 @@
             </select></label>
         </fieldset>
         <fieldset>
+            <legend>Scanning log</legend>
+            <div id="scan_results">
+                <label>
+                    <span id="scan_date">30.07.2024</span>
+                    <input type="text" value="/Volumes/MyPassport/#Photo_cloud" disabled>
+                </label>
+            </div>
+            <button type="button">Erase cashed scan</button>
+        </fieldset>
+        <fieldset>
             <legend>Actions</legend>
             <button type="button" onclick="saveCalendarConfig()">Save config</button>
             <button type="button" onclick="deleteCalendarConfig()">Delete config</button>
-            <button onclick="calendarScanFolder()">Scan folder</button>
+            <button onclick="scanFolder('calendar', document.getElementById('calendar-config-scan-folder').value, document.getElementById('explorer-config-outputFolder').value)">Scan folder</button>
             <button onclick="loadScanFolder()">Load scan folder</button>
 <!--            <button onclick="deleteScanResults()">Delete scan results</button>-->
             <button type="button" onclick="generateCalendar()">Generate calendar</button>
             <button id="downloadButton">Download as PNG</button>
             <button id="dotClean" onclick="dotClean()">*OS_X: dot_clean for scan_folder</button>
+        </fieldset>
+        <fieldset>
+            <legend>Ignored paths <span id="ignored_paths"></span></legend>
+            <button onclick="toggleCollapse(event, 'ignored_paths_section')" style="height: 37px">+</button>
+            <div id="ignored_paths_section" class="collapse"></div>
         </fieldset>
     </form>
     <div class="flex" style="flex-direction: column;">
@@ -363,7 +385,7 @@
         <div class="flex" id="missed_files_section" style="display:none;">
             <div class="content">
                 <div class="flex" style="align-items: center">
-                    <h2>You have <span id="missed_files_amount"></span> missed files</h2>
+                    <h2>You have <span id="missed_files_amount"></span> missed files<span id="ignored_files"></span></h2>
                     <button onclick="toggleCollapse(event, 'missed_files')" style="height: 37px">+</button>
                 </div>
                 <div id="missed_files" class="collapse"></div>
@@ -415,6 +437,9 @@
         12: "December"
     };
     let loadedCalendarData;
+    let storageIgnorePath = [];
+    let amountOfMissedFiles = 0;
+    let ignoredFiles = 0;
     /* region Explorer */
     function fetchExplorerFiles() {
         const sourceFolder = document.getElementById('explorer-config-sourceFolder').value;
@@ -1119,6 +1144,8 @@
                             photoYear.innerText = item[0];
 
                             const img = document.createElement('img');
+                            img.style.filter = "contrast(1.0) brightness(1.0)";
+                            img.style.transform = "scale(1.0) translate(0px, 0px)";
 
                             const imgSrc = await getBlobImage(file.source_path_log);
                             img.src = getBlob(blobType.png, imgSrc.blob);
@@ -1415,15 +1442,14 @@
         document.querySelector(`#${elementId}`).classList.toggle("show");
     }
 
-    function calendarScanFolder() {
-        const path = document.getElementById("calendar-config-scan-folder").value;
+    // type: calendar, explorer
+    function scanFolder(project, sourcePath, outputPath) {
         const output = document.getElementById('output');
         const ws = new WebSocket("ws://localhost:4200");
-        const firstLevelFoldersLoader = {};
         globalData.files = [];
 
         ws.onopen = () => {
-            ws.send(JSON.stringify({ type: 'startScan', path: path }));
+            ws.send(JSON.stringify({ type: 'startScan', sourcePath: sourcePath, outputPath: outputPath }));
         };
 
         ws.onmessage = (event) => {
@@ -1431,7 +1457,7 @@
             if (type === 'progress') {
                 output.textContent = data.source_path_log;
 
-                if (data.type !== 'directory' && (data.path.extension !== '.mp4' && data.path.extension !== '.mov')) {
+                if (data.type !== 'directory') {
                     globalData.files.push(data);
                 }
             } else if (type === 'error') {
@@ -1444,8 +1470,9 @@
                 // globalData + localstoragedata
                 globalData.files.forEach(file => arrangeInputData(file));
                 // saveScanResults();
-                arrangedData["00"]["00"]["0000"].forEach(file => showMissedDataInFiles(file.source_path_log));
-                updateMonthSelectOptions();
+                arrangedData["00"]?.["00"]?.["0000"]?.forEach(file => showMissedDataInFiles(file.source_path_log));
+                (project === 'calendar') && updateMonthSelectOptions();
+                (project === 'explorer') && displayResults();
                 output.textContent = '\nSelect month.';
                 ws.close();
             }
@@ -1457,19 +1484,102 @@
     }
 
     function showMissedDataInFiles(path) {
-        document.querySelector("#missed_files_section").style.display = "block";
+        if(!isIgnored(path)) {
+            document.querySelector("#missed_files_section").style.display = "block";
 
-        const rootEl = document.querySelector("#missed_files");
+            const rootEl = document.querySelector("#missed_files");
 
-        document.querySelector("#missed_files_amount").textContent = `(${arrangedData["00"]["00"]["0000"].length})`;
+            amountOfMissedFiles = arrangedData["00"]["00"]["0000"].length;
+            document.querySelector("#missed_files_amount").textContent = `(${amountOfMissedFiles})`;
+            
+            const filePathEl = document.createElement("div");
+            filePathEl.className = "file";
+            filePathEl.addEventListener("click", addToIgnorePath);
 
-        const filePathEl = document.createElement("div");
-        filePathEl.className = "file";
-        const filePathSpanEl = document.createElement("span");
-        filePathSpanEl.textContent = path;
+            const filePathSpanEl = document.createElement("span");
+            filePathSpanEl.textContent = path;
 
-        filePathEl.appendChild(filePathSpanEl);
-        rootEl.appendChild(filePathEl);
+            filePathEl.appendChild(filePathSpanEl);
+            rootEl.appendChild(filePathEl);
+        } else {
+            ignoredFiles++;
+            document.querySelector("#ignored_files").innerText = ` and skipped by ignored paths (${ignoredFiles})`;
+            document.querySelector("#missed_files_amount").textContent = `(${amountOfMissedFiles - ignoredFiles})`;
+        }
+    }
+
+    function isIgnored(path) {
+        return storageIgnorePath.some(ignoredPath => path.startsWith(ignoredPath));
+    }
+    
+    function addToIgnorePath(event) {
+        let currentPath = event.target.innerText || event.target.textContent;
+        
+        const editPathDiv = document.createElement("div");
+        editPathDiv.className = "file";
+        
+        const editPathEl = document.createElement("input");
+        editPathEl.value = currentPath;
+        
+        const saveBtnEl = document.createElement("button");
+        saveBtnEl.type = "button";
+        saveBtnEl.innerText = "add path to ignore";
+        saveBtnEl.onclick = () => {
+            saveIgnoredPath({removeEl: editPathDiv, newIgnorePath: editPathEl.value});
+        };
+        
+        editPathDiv.appendChild(editPathEl);
+        editPathDiv.appendChild(saveBtnEl);
+
+        event.target.appendChild(editPathDiv);
+    }
+    
+    function saveIgnoredPath({removeEl, newIgnorePath}) {
+        storageIgnorePath = localStorage.getItem("calendarIgnorePath") ? JSON.parse(localStorage.getItem("calendarIgnorePath")) : [];
+        storageIgnorePath.push(newIgnorePath);
+        localStorage.setItem("calendarIgnorePath", JSON.stringify(storageIgnorePath));
+        
+        removeEl.remove();
+        showIgnoredPath();
+        
+        document.querySelector("#missed_files").innerHTML = '';
+        ignoredFiles = 0;
+        arrangedData["00"]["00"]["0000"].forEach(file => showMissedDataInFiles(file.source_path_log));
+    }
+    
+    function showIgnoredPath() {
+        storageIgnorePath = localStorage.getItem("calendarIgnorePath") ? JSON.parse(localStorage.getItem("calendarIgnorePath")) : [];
+
+        const legendAmountIgnoredFiles = document.querySelector("#ignored_paths");
+        legendAmountIgnoredFiles.innerText = `(${storageIgnorePath.length})`;
+
+        const el = document.querySelector("#ignored_paths_section");
+        el.innerHTML = '';
+
+        storageIgnorePath.forEach((ignoredPath) => {
+            const div = document.createElement("div");
+            div.classList = "file disabled";
+            div.addEventListener("click", () => {
+                removeIgnored({removeElement: div, value: ignoredPath});
+            });
+            
+            const span = document.createElement("span");
+            span.innerText = ignoredPath;
+            
+            div.appendChild(span);
+            el.appendChild(div);
+        });
+    }
+    
+    function removeIgnored({removeElement, value}) {
+        storageIgnorePath = storageIgnorePath.filter(path => !path.includes(value));
+        localStorage.setItem("calendarIgnorePath", JSON.stringify(storageIgnorePath));
+        showIgnoredPath();
+        removeElement.remove();
+        
+        document.querySelector("#missed_files").innerHTML = '';
+        ignoredFiles = 0;
+        arrangedData["00"]["00"]["0000"].forEach(file => showMissedDataInFiles(file.source_path_log));
     }
 
     function updateMonthSelectOptions() {
@@ -1564,6 +1674,7 @@
         document.getElementById("explorer-config-putBack").checked = localStorage.getItem("explorerConfigPutBack") === "true";
         document.getElementById("explorer-config-preview").checked = localStorage.getItem("explorerConfigPreview") === "true";
         showActionsHistory();
+        showIgnoredPath();
 
         document.getElementById("calendar-config-scan-folder").value = localStorage.getItem("calendarConfigScanFolder");
 

@@ -277,18 +277,18 @@ async function dotClean(path) {
 const webSocetPort = 4200;
 
 class FolderScanner extends EventEmitter {
-    async scanDirectory(dir) {
+    async scanDirectory(sourcePath, outputPath) {
         return new Promise(resolve => {
-            console.log(`Scanning directory: ${dir}`);
-            fs.readdir(dir, { withFileTypes: true }, async (err, dirs) => {
+            console.log(`Scanning directory: ${sourcePath}`);
+            fs.readdir(sourcePath, { withFileTypes: true }, async (err, dirs) => {
                 if (err) {
                     this.emit('error', { message: err.message, stack: err.stack });
-                    console.error(`Error reading directory ${dir}:`, err);
+                    console.error(`Error reading directory ${sourcePath}:`, err);
                     return;
                 }
                 await Promise.all(
                     dirs.map(async (item) => {
-                        const itemPath = path.join(dir, item.name);
+                        const itemPath = path.join(sourcePath, item.name);
                         if (item.isDirectory()) {
                             const result = { name: item.name, type: 'directory', path: itemPath };
                             // console.log(result);
@@ -296,9 +296,18 @@ class FolderScanner extends EventEmitter {
                             // Recursively scan subdirectories
                             await this.scanDirectory(itemPath);
                         } else {
-                            // const result = { name: item.name, type: 'file', path: itemPath, ext: path.extname(item.name) };
+                            let output_path = '';
                             const extension = path.extname(item.name);
                             const {year, month, day, hours, minutes, seconds, isBlob} = parseFileName(item.name);
+
+                            if (
+                                (extension === '.mp4') ||
+                                (extension === '.mov')
+                            ) {
+                                output_path = `${year} video/`;
+                            } else {
+                                output_path = path.join(`${year}.${month}`, `${year}.${month}.${day}`);
+                            }
 
                             const result = {
                                 origin_name: item.name,
@@ -311,7 +320,8 @@ class FolderScanner extends EventEmitter {
                                     seconds,
                                     extension
                                 },
-                                source_path_log: itemPath
+                                source_path_log: itemPath,
+                                output_path_log: path.join(outputPath, year, output_path, item.name),
                             };
                             // console.log(result);
                             this.emit('progress', result);
@@ -326,11 +336,11 @@ class FolderScanner extends EventEmitter {
         });
     }
 
-    async startScan(rootPath) {
-        this.emit('start', { path: rootPath });
+    async startScan(sourcePath, outputPath) {
+        this.emit('start', { path: sourcePath });
         console.log('Scanning started...');
-        await this.scanDirectory(rootPath);
-        this.emit('end', { path: rootPath });
+        await this.scanDirectory(sourcePath, outputPath);
+        this.emit('end', { path: sourcePath });
         console.log('Scanning ended.');
     }
 }
@@ -359,9 +369,9 @@ server.on('connection', (ws) => {
     });
 
     ws.on('message', (message) => {
-        const { type, path } = JSON.parse(message);
+        const { type, sourcePath, outputPath } = JSON.parse(message);
         if (type === 'startScan') {
-            folderScanner.startScan(path);
+            folderScanner.startScan(sourcePath, outputPath);
         }
     });
 
