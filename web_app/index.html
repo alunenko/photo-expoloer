@@ -110,6 +110,7 @@
         .calendar h1 {
             width: 100%;
             text-align: center;
+            font-size: 3em;
         }
         .calendar > div {
             width: calc((100% - (10px * 2) * 5) / 7); /* 100% / gap 10px from 2 sides for 5 items in middle */
@@ -397,9 +398,13 @@
     let globalData = {};
     let arrangedData = {};
     const blobType = {
-        png: "image/png",
-        mp4: "video/mp4",
-        mov: "video/quicktime"
+        image: {
+            png: "image/png",
+        },
+        video: {
+            mp4: "video/mp4",
+            mov: "video/quicktime"
+        }
     };
     const monthNames = {
         1: "January",
@@ -419,7 +424,13 @@
     let storageIgnorePath = [];
     let amountOfMissedFiles = 0;
     let ignoredFiles = 0;
-    /* region Explorer */
+    const errorCodes = {
+        1: "Aborted",
+        2: "Error",
+    };
+
+    const buttonTextContentLR = ' => ';
+    const buttonTextContentRL = ' <= ';
 
     document.getElementById('downloadButton').addEventListener('click', downloadButton);
     
@@ -463,6 +474,100 @@
     function getBlob(type, blob) {
         return `data:${type};base64,${blob}`;
     }
+    
+    function videoPreview(file) {
+        const video = document.createElement("video");
+        const source = document.createElement("source");
+        const sourceType = blobType.video[file.path.extension];
+
+        video.controls = true;
+        video.width = 320;
+        video.height = 240;
+        
+        source.type = sourceType;
+        source.src = getBlob(sourceType, file.blob);
+
+        video.appendChild(source);
+        
+        return video;
+    }
+
+    function imagePreview(file) {
+        const image = document.createElement("img");
+
+        image.src = getBlob(blobType.image.png, file.blob);
+        image.width = 320;
+        image.height = 240;
+        
+        return image;
+    }
+    
+    function errorMoveFileClick(m) {
+        const errorElement = document.createElement("p");
+        errorElement.textContent = m;
+        errorElement.className = "error";
+        
+        return errorElement;
+    }
+    
+    function deleteSourceButton() {
+        const deleteSourceButton = document.createElement("button");
+        deleteSourceButton.textContent = "Delete source?";
+        deleteSourceButton.className = "btn-danger";
+        deleteSourceButton.onclick = deleteSourceButtonClick;
+        
+        return deleteSourceButton;
+        
+        async function deleteSourceButtonClick() {
+            const result = await removeFile(globalData.files[i]);
+            if(result.success) {
+                displayResults();
+            }
+        }
+    }
+    
+    async function moveFileClick({e, i}) {
+        const putBack = document.getElementById("explorer-config-putBack").checked;
+        const prevState = e.target.textContent;
+
+        e.target.textContent = "Moving...";
+        e.target.disabled = true;
+
+        const result = await moveFile(globalData.files[i]);
+
+        if(result.success) {
+            e.target.removeAttribute("disabled");
+
+            if(putBack) {
+                e.target.textContent = prevState === buttonTextContentLR ? buttonTextContentRL : buttonTextContentLR;
+                const output_path_log = globalData.files[i].output_path_log;
+                globalData.files[i].output_path_log = globalData.files[i].source_path_log;
+                globalData.files[i].source_path_log = output_path_log;
+            } else {
+                let actionsHistory = localStorage.getItem("explorerActionsHistory");
+                try {
+                    actionsHistory = actionsHistory ? JSON.parse(actionsHistory) : [];
+                } catch (e) {
+                    actionsHistory = [];
+                }
+
+                actionsHistory.push(globalData.files[i]);
+                localStorage.setItem("explorerActionsHistory", JSON.stringify(actionsHistory));
+                showActionsHistory();
+
+                globalData.files.splice(i, 1);
+                displayResults();
+            }
+        } else {
+            e.target.textContent = errorCodes[result.error_code];
+            const parentElement = e.target.parentNode;
+
+            parentElement.appendChild([
+                errorMoveFileClick(result.message),
+                deleteSourceButton()
+            ]);
+        }
+    }
 
     function displayResults() {
         const sourceFolder = document.getElementById('explorer-config-sourceFolder').value;
@@ -471,8 +576,6 @@
         const totalActions = document.getElementById('total_actions');
         const unknownDateAmountElement = document.getElementById('unknown_date_amount');
         const knownDateAmountElement = document.getElementById('known_date_amount');
-        const buttonTextContentLR = ' => ';
-        const buttonTextContentRL = ' <= ';
 
         let unknownDateAmount = 0;
         let knownDateAmount = 0;
@@ -488,7 +591,6 @@
                 (function(file){
                     const fileElement = document.createElement("div");
                     const fileElementBefore = document.createElement("span");
-                    const putBack = document.getElementById("explorer-config-putBack").checked;
                     const fileElementMiddle = document.createElement("button");
                     const fileElementAfter = document.createElement('span');
                     const outputFolder = document.getElementById("explorer-config-outputFolder").value;
@@ -500,88 +602,21 @@
                     fileElement.className = "file";
 
                     if(file.blob) {
-                        const isMp4 = file.path.extension === ".mp4";
-                        const isMov = file.path.extension === ".mov";
-                        if (isMp4 || isMov) {
-                            const sourceType = isMp4 ? blobType.mp4 : blobType.mov;
-                            const video = document.createElement("video");
-                            video.controls = true;
-                            video.width = 320;
-                            video.height = 240;
-
-                            const source = document.createElement("source");
-                            source.type = sourceType;
-                            const urlBlob = getBlob(sourceType, file.blob);
-                            source.src = urlBlob;
-
-                            video.appendChild(source);
-                            fileElement.appendChild(video);
+                        if (blobType.video[file.path.extension]) {
+                            fileElement.appendChild(
+                                videoPreview(file)
+                            );
                         } else {
-                            const image = document.createElement("img");
-                            // image.src = `data:image/png;base64,${file.blob}`;
-                            image.src = getBlob(blobType.png, file.blob);
-                            image.width = 320;
-                            image.height = 240;
-                            fileElement.appendChild(image);
+                            fileElement.appendChild(
+                                imagePreview(file)
+                            );
                         }
                     }
 
                     fileElementBefore.textContent = `/${file.source_path_log}`;
                     fileElement.appendChild(fileElementBefore);
 
-                    fileElementMiddle.onclick = async (event) => {
-                        console.log(event);
-                        const buttonStateBeforeMove = event.target.textContent;
-                        event.target.textContent = "Moving...";
-                        event.target.disabled = true;
-                        const result = await moveFile(globalData.files[index]);
-
-                        if(result.success) {
-                            event.target.removeAttribute("disabled");
-
-                            if(putBack) {
-                                event.target.textContent = buttonStateBeforeMove === buttonTextContentLR ? buttonTextContentRL : buttonTextContentLR;
-                                const output_path_log = globalData.files[index].output_path_log;
-                                globalData.files[index].output_path_log = globalData.files[index].source_path_log;
-                                globalData.files[index].source_path_log = output_path_log;
-                            } else {
-                                let actionsHistory = localStorage.getItem("explorerActionsHistory");
-                                try {
-                                    actionsHistory = actionsHistory ? JSON.parse(actionsHistory) : [];
-                                } catch (e) {
-                                    actionsHistory = [];
-                                }
-
-                                actionsHistory.push(globalData.files[index]);
-                                localStorage.setItem("explorerActionsHistory", JSON.stringify(actionsHistory));
-                                showActionsHistory();
-
-                                globalData.files.splice(index, 1);
-                                displayResults();
-                            }
-                        } else {
-                            event.target.textContent = result.error_code === 1 ? "Aborted" : "Error";
-                            const parentElement = event.target.parentNode;
-
-                            const errorElement = document.createElement("p");
-                            errorElement.textContent = result.message;
-                            errorElement.className = "error";
-
-                            const deleteSourceButton = document.createElement("button");
-                            deleteSourceButton.textContent = "Delete source?";
-                            deleteSourceButton.className = "btn-danger";
-                            deleteSourceButton.onclick = async (event) => {
-                                console.log(globalData.files[index]);
-                                const result = await removeFile(globalData.files[index]);
-                                if(result.success) {
-                                    displayResults();
-                                }
-                            };
-
-                            parentElement.appendChild(errorElement);
-                            parentElement.appendChild(deleteSourceButton);
-                        }
-                    };
+                    fileElementMiddle.onclick = (event) => { moveFileClick({e: event, i: index}) };
                     fileElementMiddle.textContent = buttonTextContentLR;
                     fileElementMiddle.title = "Move file";
                     fileElement.appendChild(fileElementMiddle);
@@ -602,6 +637,7 @@
                     year2.textContent = file.path.year;
                     fileElementAfter.append(year2);
                     fileElementAfter.append(`.`);
+
                     const month1 = document.createElement('span');
                     month1.id = `new_month_${index}_${internalMonthIndex}`;
                     internalMonthIndex++;
@@ -884,7 +920,6 @@
 
         const actionsHistoryOutputElement = document.getElementById("actions_history"); // actionsHistoryOutputElement
         actionsHistoryOutputElement.innerHTML = ''; // Clear previous content
-        const buttonTextContentLR = ' => ';
 
         document.getElementById('history_length').textContent = `(${historyData.length})`;
 
@@ -988,6 +1023,7 @@
             dayEl.style.backgroundColor = 'black';
             dayEl.style.color = 'white';
             dayEl.style.textTransform = 'uppercase';
+            dayEl.style.fontSize = '2em';
             weekdaysGrid.appendChild(dayEl);
         });
 
@@ -1132,7 +1168,7 @@
                             img.style.transform = "scale(1.0) translate(0px, 0px)";
 
                             const imgSrc = await getBlobImage(file.source_path_log);
-                            img.src = getBlob(blobType.png, imgSrc.blob);
+                            img.src = getBlob(blobType.image.png, imgSrc.blob);
 
                             wrapper.appendChild(img);
                             wrapper.appendChild(photoYear);
@@ -1280,7 +1316,7 @@
                 const img = document.createElement("img");
                 img.className = "preview-image";
                 const fileBlob = await getBlobImage(file.source_path_log);
-                img.src = getBlob(blobType.png, fileBlob.blob);
+                img.src = getBlob(blobType.image.png, fileBlob.blob);
                 img.onclick = () => {
                     scene.querySelector("img").src = img.src;
                     scene.querySelector("#file-path").innerText = file.source_path_log;
