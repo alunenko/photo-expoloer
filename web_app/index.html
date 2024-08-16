@@ -510,7 +510,7 @@
         return errorElement;
     }
     
-    function deleteSourceButton() {
+    function deleteSourceButton(i) {
         const deleteSourceButton = document.createElement("button");
         deleteSourceButton.textContent = "Delete source?";
         deleteSourceButton.className = "btn-danger";
@@ -562,11 +562,25 @@
             e.target.textContent = errorCodes[result.error_code];
             const parentElement = e.target.parentNode;
 
-            parentElement.appendChild([
-                errorMoveFileClick(result.message),
-                deleteSourceButton()
-            ]);
+            parentElement.appendChild(errorMoveFileClick(result.message));
+            parentElement.appendChild(deleteSourceButton(i));
         }
+    }
+
+    function moveFileButton(index) {
+        const moveFileButton = document.createElement("button");
+        moveFileButton.onclick = (event) => { moveFileClick({e: event, i: index}) };
+        moveFileButton.textContent = buttonTextContentLR;
+        moveFileButton.title = "Move file";
+        
+        return moveFileButton;
+    }
+    
+    function displayResultsFile(id, text, appendTarget, separator = '') {
+        const span = document.createElement('span');
+        span.id = id;
+        span.textContent = text;
+        appendTarget.append(span, separator);
     }
 
     function displayResults() {
@@ -591,7 +605,6 @@
                 (function(file){
                     const fileElement = document.createElement("div");
                     const fileElementBefore = document.createElement("span");
-                    const fileElementMiddle = document.createElement("button");
                     const fileElementAfter = document.createElement('span');
                     const outputFolder = document.getElementById("explorer-config-outputFolder").value;
                     const fileElementLast = document.createElement("button");
@@ -615,56 +628,26 @@
 
                     fileElementBefore.textContent = `/${file.source_path_log}`;
                     fileElement.appendChild(fileElementBefore);
+                    
+                    fileElement.appendChild(
+                        moveFileButton(index)
+                    );
+                    
+                    const yearData = [`new_year_${index}_${internalYearIndex++}`, file.path.year, fileElementAfter];
+                    const monthData = [`new_month_${index}_${internalMonthIndex++}`, file.path.month, fileElementAfter];
+                    const dayData = [`new_day_${index}`, file.path.month, fileElementAfter];
 
-                    fileElementMiddle.onclick = (event) => { moveFileClick({e: event, i: index}) };
-                    fileElementMiddle.textContent = buttonTextContentLR;
-                    fileElementMiddle.title = "Move file";
-                    fileElement.appendChild(fileElementMiddle);
+                    /* YYYY/ */
+                    displayResultsFile(...yearData, '/');
 
-                    // YEAR
-                    const year1 = document.createElement('span');
-                    year1.id = `new_year_${index}_${internalYearIndex}`;
-                    internalYearIndex++;
-                    year1.textContent = file.path.year;
-                    fileElementAfter.append(year1);
-                    fileElementAfter.append(`/`);
-                    // === END YEAR
+                    /* YYYY.MM/ */
+                    displayResultsFile(...yearData, '.');
+                    displayResultsFile(...monthData, '/');
 
-                    // MONTH
-                    const year2 = document.createElement('span');
-                    year2.id = `new_year_${index}_${internalYearIndex}`;
-                    internalYearIndex++;
-                    year2.textContent = file.path.year;
-                    fileElementAfter.append(year2);
-                    fileElementAfter.append(`.`);
-
-                    const month1 = document.createElement('span');
-                    month1.id = `new_month_${index}_${internalMonthIndex}`;
-                    internalMonthIndex++;
-                    month1.textContent = file.path.month;
-                    fileElementAfter.append(month1);
-                    fileElementAfter.append(`/`);
-                    // === END MONTH
-
-                    // DAY
-                    const year3 = document.createElement('span');
-                    year3.id = `new_year_${index}_${internalYearIndex}`;
-                    internalYearIndex++;
-                    year3.textContent = file.path.year;
-                    fileElementAfter.append(year3);
-                    fileElementAfter.append(`.`);
-                    const month2 = document.createElement('span');
-                    month2.id = `new_month_${index}_${internalMonthIndex}`;
-                    internalMonthIndex++;
-                    month2.textContent = file.path.month;
-                    fileElementAfter.append(month2);
-                    fileElementAfter.append(`/`);
-                    fileElementAfter.append(`.`);
-                    const day = document.createElement('span');
-                    day.id = `new_day_${index}`;
-                    day.textContent = file.path.month;
-                    fileElementAfter.append(day);
-                    fileElementAfter.append(`/`);
+                    /* YYYY.MM.DD/ */
+                    displayResultsFile(...yearData, '.');
+                    displayResultsFile(...monthData, '.');
+                    displayResultsFile(...dayData, '/');
 
                     fileElementAfter.append(`${file.origin_name}`);
                     fileElement.appendChild(fileElementAfter);
