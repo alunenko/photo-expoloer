@@ -588,7 +588,6 @@
                             deleteSourceButton.textContent = "Delete source?";
                             deleteSourceButton.className = "btn-danger";
                             deleteSourceButton.onclick = async (event) => {
-                                console.log("will be removed");
                                 console.log(globalData.files[index]);
                                 const result = await removeFile(globalData.files[index]);
                                 if(result.success) {
@@ -1463,17 +1462,15 @@
             } else if (type === 'error') {
                 output.textContent = '\nError: ' + error.message;
             } else if (type === 'start') {
-                output.textContent = 'Scanning started...\n';
+                output.textContent = 'Scanning started...';
             } else if (type === 'end') {
-                output.textContent = '\nScanning ended.';
                 console.log(globalData);
-                // globalData + localstoragedata
                 globalData.files.forEach(file => arrangeInputData(file));
                 // saveScanResults();
                 arrangedData["00"]?.["00"]?.["0000"]?.forEach(file => showMissedDataInFiles(file.source_path_log));
                 (project === 'calendar') && updateMonthSelectOptions();
                 (project === 'explorer') && displayResults();
-                output.textContent = '\nSelect month.';
+                output.textContent = project === 'calendar' ? 'Select month.' : "Scanning ended.";
                 ws.close();
             }
         };
