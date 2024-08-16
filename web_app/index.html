@@ -595,7 +595,6 @@
                                 }
                             };
 
-
                             parentElement.appendChild(errorElement);
                             parentElement.appendChild(deleteSourceButton);
                         }
@@ -658,6 +657,9 @@
                     fileElementAfter.textContent = `${file.output_path_log}`;
                     fileElement.appendChild(fileElementAfter);
                     fileNameMatchElement.appendChild(fileElement);
+
+                    unknownDateAmountElement.textContent = `(${unknownDateAmount})`;
+                    knownDateAmountElement.textContent = `(${knownDateAmount})`;
 
                     if(file.path.year === "0000" || file.path.month === "00" || file.path.day === "00") {
                         unknownDateAmount++;
