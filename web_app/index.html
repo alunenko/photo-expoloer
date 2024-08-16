@@ -297,7 +297,6 @@
             <div>
                 <button type="button" onclick="saveExplorerConfig()">Save config</button>
                 <button type="button" class="btn-danger" onclick="deleteExplorerConfig()">Delete config</button>
-<!--                <button type="button" onclick="fetchExplorerFiles()">Fetch Files</button>-->
                 <button type="button" onclick="scanFolder('explorer', document.getElementById('explorer-config-sourceFolder').value, document.getElementById('explorer-config-outputFolder').value)">Fetch Files</button>
                 <p id="output"></p>
             </div>
@@ -395,26 +394,6 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
 <script>
-    document.getElementById('downloadButton').addEventListener('click', function () {
-        const dayBadgeAmountPhotos = document.querySelectorAll(".amount-photos");
-        dayBadgeAmountPhotos.forEach((item) => item.style.display = "none");
-        const node = document.getElementById('print');
-        htmlToImage.toPng(node)
-            .then(function (dataUrl) {
-                const link = document.createElement('a');
-                link.download = 'myDiv.png';
-                link.href = dataUrl;
-                link.click();
-            })
-            .then(() => {
-                dayBadgeAmountPhotos.forEach((item) => item.style.display = "block");
-            })
-            .catch(function (error) {
-                console.error('oops, something went wrong!', error);
-            });
-    });
-</script>
-<script>
     let globalData = {};
     let arrangedData = {};
     const blobType = {
@@ -441,39 +420,44 @@
     let amountOfMissedFiles = 0;
     let ignoredFiles = 0;
     /* region Explorer */
-    function fetchExplorerFiles() {
-        const sourceFolder = document.getElementById('explorer-config-sourceFolder').value;
-        const outputFolder = document.getElementById('explorer-config-outputFolder').value;
-        const videoFolder = document.getElementById('explorer-config-videoFolder').checked;
 
-        const apiUrl = 'http://localhost:3000/processFiles';
+    document.getElementById('downloadButton').addEventListener('click', downloadButton);
+    
+    class BadgeAmountPhotos {
+        el = null;
+        constructor({querySelector}) {
+            this.el = document.querySelectorAll(querySelector);
+        }
 
-        fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json', // Adjust based on your server's expectations
-                // Add any other headers if needed
-            },
-            body: JSON.stringify({
-                sourceFolder,
-                outputFolder,
-                videoFolder
-            }),
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
+        display(val) {
+            this.el.forEach((item) => item.style.display = val ? "block" : "none");
+        }
+    }
+    
+    function downloadButton() {
+        const badgeAmountPhotos = new BadgeAmountPhotos({querySelector: ".amount-photos"});
+        badgeAmountPhotos.display(false);
+
+        htmlToImageToPng({
+            node: document.getElementById('print'),
+            callback: () => { badgeAmountPhotos.display(true); }
+        });
+    }
+    
+    function htmlToImageToPng({node, callback}) {
+        htmlToImage.toPng(node)
+            .then((dataUrl) => {
+                const link = document.createElement('a');
+                link.download = 'myDiv.png';
+                link.href = dataUrl;
+                link.click();
+                if (callback) callback();
             })
-            .then(fetchFilesResponse => {
-                // Handle the data received from the server
-                Object.assign(globalData, fetchFilesResponse);
-                displayResults();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
+            .catch((error) => { errorHandler(['Download button ', error]); });
+    }
+    
+    function errorHandler(error) {
+        console.error([...error]);
     }
 
     function getBlob(type, blob) {
@@ -527,7 +511,6 @@
 
                             const source = document.createElement("source");
                             source.type = sourceType;
-                            // const urlBlob = `data:${sourceType};base64,${file.blob}`;
                             const urlBlob = getBlob(sourceType, file.blob);
                             source.src = urlBlob;
 
@@ -1073,7 +1056,7 @@
                             const loadedName = loadedCalendarData[month][day][year][loadedFile].origin_name;
 
 
-                            arrangedData[month][day][year] && arrangedData[month][day][year].forEach((arrangedFile) => {
+                            arrangedData[month]?.[day]?.[year] && arrangedData[month][day][year].forEach((arrangedFile) => {
                                 const arrangedName = arrangedFile.origin_name;
                                 console.log(`loadedName: ${loadedName}`, `arrangedName: ${arrangedName}`, arrangedName === loadedName);
 
