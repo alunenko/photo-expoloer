@@ -362,7 +362,7 @@
             <legend>Actions</legend>
             <button type="button" onclick="saveCalendarConfig()">Save config</button>
             <button type="button" onclick="deleteCalendarConfig()">Delete config</button>
-            <button onclick="scanFolder('calendar', document.getElementById('calendar-config-scan-folder').value, document.getElementById('explorer-config-outputFolder').value)">Scan folder</button>
+            <button onclick="scanFolder('calendar', document.getElementById('calendar-config-scan-folder').value, '')">Scan folder</button>
             <button onclick="loadScanFolder()">Load scan folder</button>
 <!--            <button onclick="deleteScanResults()">Delete scan results</button>-->
             <button type="button" onclick="generateCalendar()">Generate calendar</button>
@@ -653,7 +653,7 @@
                     fileElement.appendChild(fileElementAfter);
                     fileNameMismatchElement.appendChild(fileElement);
 
-                    if (file.path.extension !== ".mp4" && file.path.extension !== ".mov") {
+                    if (blobType.image[file.path.extension]) {
                         file.output_path_log = `${outputFolder}/${file.path.year}/${file.path.year}.${file.path.month}/${file.path.year}.${file.path.month}.${file.path.day}/${file.path.year}-${file.path.month}-${file.path.day} ${file.path.hours}.${file.path.minutes}.${file.path.seconds}${file.path.extension}`;
                     }
                     fileElementAfter.textContent = `${file.output_path_log}`;

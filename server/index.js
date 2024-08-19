@@ -277,7 +277,7 @@ async function dotClean(path) {
 const webSocetPort = 4200;
 
 class FolderScanner extends EventEmitter {
-    async scanDirectory(sourcePath, outputPath) {
+    async scanDirectory(sourcePath, outputPath = "") {
         return new Promise(resolve => {
             console.log(`Scanning directory: ${sourcePath}`);
             fs.readdir(sourcePath, { withFileTypes: true }, async (err, dirs) => {
