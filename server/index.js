@@ -273,7 +273,7 @@ async function dotClean(path) {
     });
 }
 
-<!--region ScanFolder-->
+<!--region ScanFolder/scanDirectory-->
 const webSocetPort = 4200;
 
 class FolderScanner extends EventEmitter {

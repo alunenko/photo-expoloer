@@ -299,7 +299,7 @@
                 <button type="button" onclick="saveExplorerConfig()">Save config</button>
                 <button type="button" class="btn-danger" onclick="deleteExplorerConfig()">Delete config</button>
                 <button type="button" onclick="scanFolder('explorer', document.getElementById('explorer-config-sourceFolder').value, document.getElementById('explorer-config-outputFolder').value)">Fetch Files</button>
-                <p id="output"></p>
+                <p id="explorer_output"></p>
             </div>
         </fieldset>
     </form>
@@ -337,36 +337,44 @@
     <p><a href="#" onclick="navigate('home')">home</a></p>
     <h1>Calendar</h1>
     <form>
-        <fieldset>
-            <legend>General</legend>
-            <label>Scan folder<input id="calendar-config-scan-folder" type="text"></label>
-            <label>Saved data<input type="file" id="global-data"></label>
+        <fieldset id="scan_folder_fieldset">
+            <legend>Step 1</legend>
+            <button onclick="scanFolderI.scanFolder('calendar', document.getElementById('calendar-config-scan-folder').value, '')">Scan folder</button>
+            <label><input id="calendar-config-scan-folder" type="text" placeholder="Provide a path to directory with images" style="width: 15%;"></label>
+            <span style="font-size: 18px; font-weight: bold; text-transform: uppercase; text-decoration: underline;">or</span>
+            <label>Select scan results file <input type="file" id="upload_scan_results_file_path"></label>
+            <span id="calendar_output">No scanned data yet</span>
         </fieldset>
         <fieldset>
-            <legend>Pick a date</legend>
-            <label><select id="calendar-config-month">
-                <option value="" disabled="disabled" selected="selected"></option>
-            </select></label>
+            <legend>Step 2</legend>
+            <label>Pick a month <select id="calendar-config-month">
+                <option value="" disabled="disabled" selected="selected"></option></select>
+            </label>
         </fieldset>
         <fieldset>
-            <legend>Scanning log</legend>
-            <div id="scan_results">
-                <label>
-                    <span id="scan_date">30.07.2024</span>
-                    <input type="text" value="/Volumes/MyPassport/#Photo_cloud" disabled>
-                </label>
+            <legend>Step 3</legend>
+            <label>Randomly fill <input type="checkbox"></label>
+            <div>
+                <button type="button" onclick="generateCalendar()">Generate calendar</button>
             </div>
-            <button type="button">Erase cashed scan</button>
+        </fieldset>
+        <fieldset>
+            <legend>Step 4</legend>
+            <p>Preview and select image if you have more than one image on this day</p>
+        </fieldset>
+        <fieldset>
+            <legend>Step 5</legend>
+            <button id="downloadButton">Download as PNG</button>
+        </fieldset>
+        <fieldset>
+            <legend>Step 6</legend>
+            <p>Enjoy your memories!</p>
         </fieldset>
         <fieldset>
             <legend>Actions</legend>
             <button type="button" onclick="saveCalendarConfig()">Save config</button>
             <button type="button" onclick="deleteCalendarConfig()">Delete config</button>
-            <button onclick="scanFolder('calendar', document.getElementById('calendar-config-scan-folder').value, '')">Scan folder</button>
-            <button onclick="loadScanFolder()">Load scan folder</button>
 <!--            <button onclick="deleteScanResults()">Delete scan results</button>-->
-            <button type="button" onclick="generateCalendar()">Generate calendar</button>
-            <button id="downloadButton">Download as PNG</button>
             <button id="dotClean" onclick="dotClean()">*OS_X: dot_clean for scan_folder</button>
         </fieldset>
         <fieldset>
@@ -378,9 +386,7 @@
     <div class="flex" style="flex-direction: column;">
 <!--        <div id="print" class="print a4-size m-album">-->
         <div id="print" class="print">
-            <div id="calendar-content" class="calendar">
-                <p id="output">No scanned data yet</p>
-            </div>
+            <div id="calendar-content" class="calendar"></div>
         </div>
         <div class="flex" id="missed_files_section" style="display:none;">
             <div class="content">
@@ -431,8 +437,12 @@
 
     const buttonTextContentLR = ' => ';
     const buttonTextContentRL = ' <= ';
+    
+    const scanFolderI = () => {
+        return new ScanFolder();
+    };
 
-    document.getElementById('downloadButton').addEventListener('click', downloadButton);
+    document.getElementById('downloadButton').addEventListener('click', downloadPNGButton);
     
     class BadgeAmountPhotos {
         el = null;
@@ -445,7 +455,7 @@
         }
     }
     
-    function downloadButton() {
+    function downloadPNGButton() {
         const badgeAmountPhotos = new BadgeAmountPhotos({querySelector: ".amount-photos"});
         badgeAmountPhotos.display(false);
 
@@ -1077,7 +1087,6 @@
 
                             arrangedData[month]?.[day]?.[year] && arrangedData[month][day][year].forEach((arrangedFile) => {
                                 const arrangedName = arrangedFile.origin_name;
-                                console.log(`loadedName: ${loadedName}`, `arrangedName: ${arrangedName}`, arrangedName === loadedName);
 
                                 if(arrangedName === loadedName) {
                                     arrangedFile["selected"] = loadedCalendarData[month][day][year][loadedFile]["selected"];
@@ -1444,10 +1453,151 @@
         event.target.textContent = event.target.textContent === "+" ? "-" : "+";
         document.querySelector(`#${elementId}`).classList.toggle("show");
     }
+    
+    class ScanFolder {
+        outputEl = document.querySelector('');
+        scanFolderResultsButtonId = "scan_folder_results_button";
+        buttonsData = {
+            upload: {
+                id: "scan_folder_upload_button",
+                text: "Upload scan folder results",
+                eventHandler: this._upload,
+                eventType: 'click'
+            },
+            download: {
+                id: this.scanFolderResultsButtonId,
+                text: "Download scan folder results",
+                eventHandler: this._download,
+                eventType: 'click'
+            }
+        };
+        
+        constructor() {
+            this._createButton(this.buttonsData.upload);
+        }
+        scanFolder(project, sourcePath, outputPath) {
+            this.outputEl = document.querySelector(`#${project}_output`);
+            this._removeDownload();
+            globalData.files = [];
+            const ws = new WebSocket("ws://localhost:4200");
+
+            ws.onopen = () => {
+                ws.send(JSON.stringify({ type: 'startScan', sourcePath: sourcePath, outputPath: outputPath }));
+            };
+
+            ws.onmessage = (event) => {
+                const { type, data, error } = JSON.parse(event.data);
+                if (type === 'progress') {
+                    this.outputEl.textContent = data.source_path_log;
+
+                    if (data.type !== 'directory') {
+                        globalData.files.push(data);
+                    }
+                } else if (type === 'error') {
+                    this.outputEl.textContent = '\nError: ' + error.message;
+                } else if (type === 'start') {
+                    this.outputEl.textContent = 'Scanning started...';
+                } else if (type === 'end') {
+                    this._scanEnd(project);
+                    ws.close();
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('client disconnected');
+            }
+        }
+        
+        _download() {
+            const globalDataToSave = JSON.stringify(globalData);
+            const blob = new Blob([globalDataToSave], { type: "application/json" });
+
+            const link = document.createElement("a");
+            link.download = `${this._exportName()}.json`;
+            link.href = window.URL.createObjectURL(blob);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        _scanDate() {
+            const dateNow = new Date();
+            const year = dateNow.getFullYear();
+            const month = (dateNow.getMonth() + 1).toString().padStart(2, 0);
+            const day = dateNow.getDate();
+            const h = dateNow.getHours();
+            const m = dateNow.getMinutes();
+            const s = dateNow.getSeconds();
+            return `${year}-${month}-${day} ${h}.${m}.${s}`;
+        }
+        
+        _exportName() {
+            return `${this._scanDate()}_photo-calendar-scan-folder-data.json`;
+        }
+        
+        _removeDownload() {
+            document.querySelector(`#${this.scanFolderResultsButtonId}`)?.remove();
+        }
+        
+        _scanEnd(project) {
+            const isCalendar = project === 'calendar';
+            console.log(globalData);
+            globalData.files.forEach(file => arrangeInputData(file));
+            // saveScanResults();
+            arrangedData["00"]?.["00"]?.["0000"]?.forEach(file => showMissedDataInFiles(file.source_path_log));
+
+            if(project === 'calendar') {
+                updateMonthSelectOptions();
+            } else if(project === 'explorer') {
+                displayResults();
+            } else {
+
+            }
+            
+            if(globalData?.files.length) {
+                this._createButton(this.buttonsData.download);
+            }
+
+            this.outputEl.textContent = isCalendar ? 'Select month.' : "Scanning ended.";
+        }
+        
+        _createButton({id, text, eventType, eventHandler}) {
+            const buttonEl = document.createElement("button");
+            buttonEl.type = "button";
+            buttonEl.id = id;
+            buttonEl.textContent = text;
+            buttonEl.addEventListener(eventType, eventHandler);
+
+            console.log(buttonEl);
+
+            document.querySelector("#scan_folder_fieldset").appendChild(buttonEl);
+        }
+        
+        _upload(event) {
+            const file = document.querySelector(`#upload_scan_results_file_path`).files[0];
+            console.log(file);
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    globalData = JSON.parse(content);
+                    globalData.files.forEach(file => arrangeInputData(file));
+                    arrangedData["00"]["00"]["0000"].forEach(file => showMissedDataInFiles(file.source_path_log));
+                    updateMonthSelectOptions();
+                };
+                reader.onerror = function(e) {
+                    console.error("File could not be read! Code " + e.target.error.code);
+                };
+                reader.readAsText(file);
+            }
+        }
+    }
 
     // type: calendar, explorer
+    // deprecated
+    // TODO: for explorer use ScanFolder.scanFolder
     function scanFolder(project, sourcePath, outputPath) {
-        const output = document.getElementById('output');
+        const output = document.getElementById('explorer_output');
         const ws = new WebSocket("ws://localhost:4200");
         globalData.files = [];
 
@@ -1472,8 +1622,16 @@
                 globalData.files.forEach(file => arrangeInputData(file));
                 // saveScanResults();
                 arrangedData["00"]?.["00"]?.["0000"]?.forEach(file => showMissedDataInFiles(file.source_path_log));
-                (project === 'calendar') && updateMonthSelectOptions();
-                (project === 'explorer') && displayResults();
+                if(project === 'calendar') {
+                    updateMonthSelectOptions();
+                } else if(project === 'explorer') {
+                    displayResults();
+                } else {
+                    
+                }
+                
+                // scanFolder HERE
+                
                 output.textContent = project === 'calendar' ? 'Select month.' : "Scanning ended.";
                 ws.close();
             }
@@ -1595,28 +1753,6 @@
         })
     }
 
-    function loadScanFolder() { /* from file */
-        document.querySelector('#global-data').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            console.log(file);
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const content = e.target.result;
-                    globalData = JSON.parse(content);
-                    savedDataToGlobalData();
-                    globalData.files.forEach(file => arrangeInputData(file));
-                    arrangedData["00"]["00"]["0000"].forEach(file => showMissedDataInFiles(file.source_path_log));
-                    updateMonthSelectOptions();
-                };
-                reader.onerror = function(e) {
-                    console.error("File could not be read! Code " + e.target.error.code);
-                };
-                reader.readAsText(file);
-            }
-        });
-    }
-
     async function dotClean() {
         const apiUrl = 'http://localhost:3000/dotClean';
 
@@ -1676,6 +1812,7 @@
         document.getElementById("explorer-config-preview").checked = localStorage.getItem("explorerConfigPreview") === "true";
         showActionsHistory();
         showIgnoredPath();
+        scanFolderI();
 
         document.getElementById("calendar-config-scan-folder").value = localStorage.getItem("calendarConfigScanFolder");
 
