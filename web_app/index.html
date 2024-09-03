@@ -149,6 +149,9 @@
             font-weight: bold;
             mix-blend-mode: difference;
         }
+        .month-cell:hover .editor-button {
+            display: block;
+        }
         .m-white-space {
             border: 2px solid white;
             overflow: hidden;
@@ -298,6 +301,36 @@
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
             z-index: 3;
+        }
+        .editor-button {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            z-index: 1;
+        }
+        .editor-photo.m-open { display: block; }
+        .editor-photo {
+            display: none;
+            padding: 16px;
+            background-color: white;
+            position: fixed;
+            top: 10%;
+            left: 10%;
+            z-index: 5;
+            
+            border: 1px solid black;
+            border-radius: 8px;
+        }
+        .editor-photo .text {
+            min-width: 80px;
+            display: inline-block;
+        }
+        .d-flex {
+            display: flex;
+        }
+        .justify-content-space-between {
+            justify-content: space-between;
         }
     </style>
 </head>
@@ -459,6 +492,29 @@
             </div>
         </div>
     </div>
+    <form class="editor-photo">
+        <div class="d-flex justify-content-space-between">
+            <span id="reset-all-editor-photo">Reset</span>
+            <span id="close-editor-photo">Close</span>
+        </div>
+        <label><span class="text">Contrast</span> <input   type="range" min="0" max="10" step="0.1" value="1.0" name="contrast" id="editor-contrast"></label><br/>
+        <label><span class="text">Brightness</span> <input type="range" min="0" max="10" step="0.1" value="1.0" name="brightness" id="editor-brightness"></label><br/>
+        <label><span class="text">Scale</span> <input      type="range" min="0" max="10" step="0.1" value="1.0" name="scale" id="editor-scale"></label><br/>
+        <label><span class="text">Position-X</span> <input type="range" min="-1000" max="1000" step="1" value="0" name="position-x" id="editor-position-x"></label><br/>
+        <label><span class="text">Position-Y</span> <input type="range" min="-1000" max="1000" step="1" value="0" name="position-y" id="editor-position-y"></label><br/>
+        <label><span class="text">Object-fit</span> <select name="object-fit" id="editor-object-fit">
+            <option value="contain">contain</option>
+            <option value="cover">cover</option>
+            <option value="fill">fill</option>
+            <option value="none">none</option>
+            <option value="scale-down">scale-down</option>
+            <option value="inherit">inherit</option>
+            <option value="initial">initial</option>
+            <option value="revert">revert</option>
+            <option value="revert-layer">revert-layer</option>
+            <option value="unset">unset</option>
+        </select></label>
+    </form>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
 <script>
@@ -1186,9 +1242,7 @@
                 // console.log("if 1");
                 let divElement = document.createElement('div');
                 divElement.classList.add('month-cell');
-                divElement.addEventListener("click", (event) => {
-                    dailyImagesPreview(event);
-                });
+                divElement.style.position = "relative";
 
                 let photoDay = document.createElement('span');
                 photoDay.classList.add('m-day');
@@ -1219,12 +1273,16 @@
                             photoYear.innerText = item[0];
 
                             const img = document.createElement('img');
-                            img.style.filter = "contrast(1.0) brightness(1.0)";
-                            img.style.transform = "scale(1.0) translate(0px, 0px)";
+                            // img.style.filter = "contrast(1.0) brightness(1.0)";
+                            // img.style.transform = "scale(1.0) translate(0px, 0px)";
+                            img.addEventListener("click", (event) => {
+                                dailyImagesPreview(event);
+                            });
 
                             const imgSrc = await getBlobImage(file.source_path_log);
                             img.src = getBlob(blobType.image.png, imgSrc.blob);
 
+                            wrapper.appendChild(editPhotoButton(img));
                             wrapper.appendChild(img);
                             wrapper.appendChild(photoYear);
                             container.appendChild(wrapper);
@@ -1260,6 +1318,72 @@
         }
 
         addCalendarShiftDay(7 - numberOfLastDayInMonth);
+    }
+
+    function editPhotoButton(el) {
+        const editorButton = document.createElement("button");
+        editorButton.onclick = () => {
+            globalCloseEditorReference();
+            showEditor(el);
+        };
+        editorButton.textContent = "Edit";
+        editorButton.className = "editor-button";
+        return editorButton;
+    }
+    
+    let globalCloseEditorReference = () => {};
+    
+    function showEditor(el) {
+        const editorEl = document.querySelector(".editor-photo");
+        const classToDisplay = "m-open";
+        let contrastVal = 1.0;
+        let brightnessVal = 1.0;
+        let scaleVal = 1.0;
+        let translateXVal = 0;
+        let translateYVal = 0;
+        let contrastEl = document.querySelector("#editor-contrast");
+        let brightnessEl = document.querySelector("#editor-brightness");
+        let scaleEl = document.querySelector("#editor-scale");
+        let translateXEl = document.querySelector("#editor-position-x");
+        let translateYEl = document.querySelector("#editor-position-y");
+        const reset = () => {
+            contrastEl.value = 1.0;
+            brightnessEl.value = 1.0;
+            scaleEl.value = 1.0;
+            translateXEl.value = 0;
+            translateYEl.value = 0;
+        }
+        const closeEditor = () => {
+            editorEl.classList.remove("m-open");
+
+            reset();
+
+            contrastEl.removeEventListener('input', updateStyles);
+            brightnessEl.removeEventListener('input', updateStyles);
+            scaleEl.removeEventListener('input', updateStyles);
+            translateXEl.removeEventListener('input', updateStyles);
+            translateYEl.removeEventListener('input', updateStyles);
+        };
+        globalCloseEditorReference = closeEditor;
+        const updateStyles = () => {
+            el.style.filter = `contrast(${contrastEl.value}) brightness(${brightnessEl.value})`;
+            el.style.transform = `scale(${scaleEl.value}) translate(${translateXEl.value}px, ${translateYEl.value}px)`;
+        }
+
+        editorEl.classList.add(classToDisplay);
+        contrastEl.addEventListener('input', updateStyles);
+        brightnessEl.addEventListener('input', updateStyles);
+        scaleEl.addEventListener('input', updateStyles);
+        translateXEl.addEventListener('input', updateStyles);
+        translateYEl.addEventListener('input', updateStyles);
+
+        document.querySelector("#reset-all-editor-photo").onclick = () => {
+            reset();
+
+            el.style.filter = `contrast(${contrastVal}) brightness(${brightnessVal})`;
+            el.style.transform = `scale(${scaleVal}) translate(${translateXVal}px, ${translateYVal}px)`;
+        };
+        document.querySelector("#close-editor-photo").onclick = closeEditor;
     }
     
     function clearCalendar() {
