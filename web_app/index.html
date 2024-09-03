@@ -38,6 +38,7 @@
             border: 1px groove rgb(192, 192, 192);
             background-color: #eee;
             flex: 1 1 50%;
+            word-break: break-word;
         }
 
         p.error {
@@ -255,6 +256,49 @@
         .m-space {
             border: 2px solid white;
         }
+        .animate {
+            transition: .3s all;
+        }
+        .m-w-0 {
+            width: 0;
+        }
+        .m-w-20 {
+            width: 20%;
+        }
+        .o-v-h {
+            overflow: hidden;
+        }
+        .w-100 {
+            width: 100%;
+        }
+        .m-e-y-4 > * {
+            margin: 4px 0;
+        }
+        fieldset {
+            padding: 8px;
+        }
+        .calendar-config {
+            position: absolute;
+            height: calc(100% - 114px);
+            overflow-y: scroll;
+            background: white;
+            z-index: 4;
+        }
+        .calendar-output {
+            width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .bg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 3;
+        }
     </style>
 </head>
 <body>
@@ -335,15 +379,26 @@
 </div>
 <div id="calendar" class="page">
     <p><a href="#" onclick="navigate('home')">home</a></p>
-    <h1>Calendar</h1>
-    <form>
-        <fieldset style="min-height: 111px;">
+    <h1><button type="button" onclick="toggle_config()">Config</button> Calendar</h1>
+    <form id="calendar_config" class="calendar-config o-v-h animate m-w-0">
+        <fieldset>
             <legend>Step 1</legend>
-            <button onclick="scanFolderI.scanFolder('calendar', document.getElementById('calendar-config-scan-folder').value, '')">Scan folder</button>
-            <label id="download_scan_results"><input id="calendar-config-scan-folder" type="text" placeholder="Provide a path to directory with images" style="width: 15%;"></label>
-            <span style="font-size: 18px; font-weight: bold; text-transform: uppercase; text-decoration: underline;">or</span>
-            <label id="scan_folder_fieldset">Select scan results file <input type="file" id="upload_scan_results_file_path"></label>
-            <p id="calendar_output">No scanned data yet</p>
+            <div class="m-e-y-4">
+                <span>Provide a path to photo: </span><br />
+                <label>
+                    <input id="calendar-config-scan-folder" type="text" placeholder="Provide a path to directory with images" style="width: calc(100% - 67px);">
+                    and then
+                </label><br />
+                <button class="w-100" onclick="scanFolderI.scanFolder('calendar', document.getElementById('calendar-config-scan-folder').value, '')">Scan folder</button>
+                <span style="display: block; text-align: center; font-size: 18px; font-weight: bold; text-transform: uppercase; text-decoration: underline;">or</span>
+                <span>Select previous results</span><br />
+                <label>
+                    <input type="file" id="upload_scan_results_file_path" style="width: calc(100% - 67px);">
+                    and then
+                </label><br />
+                <button id="scan_folder_upload_button" class="w-100" onclick="scanFolderI.upload()">Upload</button>
+            </div>
+            <p id="calendar_output" class="calendar-output">No scanned data</p>
         </fieldset>
         <fieldset>
             <legend>Step 2</legend>
@@ -356,6 +411,7 @@
             <label>Randomly fill <input type="checkbox"></label>
             <div>
                 <button type="button" onclick="generateCalendar()">Generate calendar</button>
+                <button type="button" onclick="clearCalendar()">Clear calendar</button>
             </div>
         </fieldset>
         <fieldset>
@@ -372,14 +428,19 @@
         </fieldset>
         <fieldset>
             <legend>Actions</legend>
-            <button type="button" onclick="saveCalendarConfig()">Save config</button>
-            <button type="button" onclick="deleteCalendarConfig()">Delete config</button>
-<!--            <button onclick="deleteScanResults()">Delete scan results</button>-->
-            <button id="dotClean" onclick="dotClean()">*OS_X: dot_clean for scan_folder</button>
+            <div>
+                <label>Config to be <button type="button" onclick="saveCalendarConfig()">save</button>/<button type="button" onclick="deleteCalendarConfig()">delete</button>:</label>
+                <ul>
+                    <li>Step1: Path to your photo</li>
+                    <li>Step3: Randomly fulfill</li>
+                </ul>
+            </div>
+            <hr>
+            <label>Remove files, which names start from dot <button id="dotClean" onclick="dotClean()">*OS_X: dot_clean</button></label>
         </fieldset>
         <fieldset>
             <legend>Ignored paths <span id="ignored_paths"></span></legend>
-            <button onclick="toggleCollapse(event, 'ignored_paths_section')" style="height: 37px">+</button>
+            <button onclick="toggleCollapse(event, 'ignored_paths_section')">+</button>
             <div id="ignored_paths_section" class="collapse"></div>
         </fieldset>
     </form>
@@ -1097,6 +1158,7 @@
         }
 
         const userPickMonth = document.querySelector('#calendar-config-month').value;
+        console.log(`userPickMonth ${userPickMonth}`);
         const currentMonth = userPickMonth ? userPickMonth - 1 : Object.keys(arrangedData)[0] - 1;
         // const currentMonthLeadZero = currentMonth + 1 < 10 ? `0${currentMonth + 1}` : `${currentMonth + 1}`;
         const currentMonthLeadZero = leadZero(currentMonth + 1);
@@ -1107,10 +1169,15 @@
 
         const currentDate = new Date(+currentYear, +currentMonth + 1, 0);
         const daysInCurrentMonth = currentDate.getDate();
-        const numberOfFirstDayInMonth = new Date(+currentYear, +currentMonth, 1).getDay();
+        const numberOfFirstDayInMonth = new Date(+currentYear, +currentMonth, 0).getDay();
         const numberOfLastDayInMonth = new Date(+currentYear, +currentMonth, daysInCurrentMonth).getDay();
 
-        addCalendarShiftDay(numberOfFirstDayInMonth - 1);
+        console.log(`currentDate ${currentDate}`);
+        console.log(`daysInCurrentMonth ${daysInCurrentMonth}`);
+        console.log(`numberOfFirstDayInMonth ${numberOfFirstDayInMonth}`);
+        console.log(`numberOfLastDayInMonth ${numberOfLastDayInMonth}`);
+
+        addCalendarShiftDay(numberOfFirstDayInMonth);
 
         for(let dayInMonth = 1; dayInMonth <= daysInCurrentMonth; dayInMonth++) {
             let dayInMonthLeadZero = leadZero(dayInMonth);
@@ -1193,6 +1260,10 @@
         }
 
         addCalendarShiftDay(7 - numberOfLastDayInMonth);
+    }
+    
+    function clearCalendar() {
+        
     }
 
     function findParentWithAttribute(element, attributeName) {
@@ -1454,13 +1525,6 @@
         outputEl = document.querySelector('body');
         scanFolderResultsButtonId = "scan_folder_results_button";
         buttonsData = {
-            upload: {
-                id: "scan_folder_upload_button",
-                text: "Upload scan folder results",
-                eventHandler: this._upload.bind(this),
-                eventType: 'click',
-                appendId: 'scan_folder_fieldset'
-            },
             download: {
                 id: this.scanFolderResultsButtonId,
                 text: "Download scan folder results",
@@ -1471,9 +1535,9 @@
         };
         
         constructor() {
-            document.querySelector("#upload_scan_results_file_path").addEventListener("change", () => {
-                this._createButton(this.buttonsData.upload);
-            });
+            // document.querySelector("#upload_scan_results_file_path").addEventListener("change", () => {
+            //     this._createButton(this.buttonsData.upload);
+            // });
         }
         
         scanFolder(project, sourcePath, outputPath) {
@@ -1506,6 +1570,25 @@
 
             ws.onclose = () => {
                 console.log('client disconnected');
+            }
+        }
+
+        upload() {
+            const file = document.querySelector(`#upload_scan_results_file_path`).files[0];
+            console.log(file);
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    globalData = JSON.parse(content);
+                    globalData.files.forEach(file => arrangeInputData(file));
+                    arrangedData["00"]["00"]["0000"].forEach(file => showMissedDataInFiles(file.source_path_log));
+                    updateMonthSelectOptions();
+                };
+                reader.onerror = function(e) {
+                    console.error("File could not be read! Code " + e.target.error.code);
+                };
+                reader.readAsText(file);
             }
         }
         
@@ -1572,25 +1655,6 @@
             console.log(buttonEl);
 
             document.querySelector(`#${appendId}`).appendChild(buttonEl);
-        }
-        
-        _upload() {
-            const file = document.querySelector(`#upload_scan_results_file_path`).files[0];
-            console.log(file);
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const content = e.target.result;
-                    globalData = JSON.parse(content);
-                    globalData.files.forEach(file => arrangeInputData(file));
-                    arrangedData["00"]["00"]["0000"].forEach(file => showMissedDataInFiles(file.source_path_log));
-                    updateMonthSelectOptions();
-                };
-                reader.onerror = function(e) {
-                    console.error("File could not be read! Code " + e.target.error.code);
-                };
-                reader.readAsText(file);
-            }
         }
     }
 
@@ -1743,15 +1807,31 @@
     }
 
     function updateMonthSelectOptions() {
-        const select = document.querySelector("#calendar-config-month");
+        console.log('updateMonthSelectOptions');
+        let select = document.querySelector("#calendar-config-month");
+        select.innerHTML = '';
+        const option = document.createElement("option");
+        option.value = '';
+        option.textContent = '';
+        option.disabled = true;
+        option.selected = true;
+        select.appendChild(option);
+        
+        const newMap = new Map();
 
         const availableMonths = Object.keys(arrangedData).sort();
         availableMonths.forEach((month) => {
+            monthNames[+month] && newMap.set(+month, monthNames[+month]);
+        });
+
+        let sortedMap = [...newMap.entries()].sort((a, b) => a[0] - b[0]);
+
+        sortedMap.forEach((item) => {
             const option = document.createElement("option");
-            option.value = +month;
-            option.textContent = monthNames[+month];
+            option.value = item[0];
+            option.textContent = item[1];
             select.appendChild(option);
-        })
+        });
     }
 
     async function dotClean() {
@@ -1803,6 +1883,37 @@
         localStorage.removeItem("explorerConfigVideoFolder");
         localStorage.removeItem("explorerConfigPutBack");
         localStorage.removeItem("explorerConfigPreview");
+    }
+
+    const configEl = document.querySelector("#calendar_config");
+    
+    function toggle_config() {
+        configEl.classList.toggle("m-w-20");
+        document.querySelector("body").style.overflow = configEl.classList.contains("m-w-20") ? "hidden" : "auto";
+        toggle_bg_overlay();
+    }
+    
+    function close_config() {
+        if (configEl.classList.contains("m-w-20")) {
+            configEl.classList.remove("m-w-20");
+            document.querySelector("body").style.overflow = "auto";
+            removeBgOverlay();
+        }
+    }
+    
+    function toggle_bg_overlay() {
+        if(document.querySelector(".bg-overlay")) {
+            removeBgOverlay();
+        } else {
+            const bgOverlay = document.createElement("div");
+            bgOverlay.className = "bg-overlay";
+            bgOverlay.addEventListener('click', close_config);
+            document.querySelector("body").appendChild(bgOverlay);
+        }
+    }
+
+    function removeBgOverlay() {
+        document.querySelector(".bg-overlay")?.remove();
     }
 
     let scanFolderI;
