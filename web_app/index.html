@@ -321,6 +321,9 @@
             border: 1px solid black;
             border-radius: 8px;
         }
+        .editor-photo-header-text {
+            cursor: move;
+        }
         .editor-photo .text {
             min-width: 80px;
             display: inline-block;
@@ -498,7 +501,7 @@
     </div>
     <form class="editor-photo">
         <div id="editor-photo-header" style="text-align: center; padding: 8px; background-color: lightgrey; border-top-left-radius: 8px; border-top-right-radius: 8px;">
-            Photo editor
+            <span class="editor-photo-header-text" title="Click and hold for drag/move window">Photo editor</span>
             <button type="button" id="close-editor-photo" style="position: absolute; top: calc((34px - 21px) / 2); right: 8px;">x</button>
         </div>
         <div style="padding: 8px 16px 0">
@@ -1416,6 +1419,7 @@
 
         // Mouse move event to drag the popup
         document.addEventListener('mousemove', (e) => {
+            if(e.target.nodeName === 'button') return;
             if (isDragging) {
                 popup.style.left = `${e.clientX - offsetX}px`;
                 popup.style.top = `${e.clientY - offsetY}px`;
