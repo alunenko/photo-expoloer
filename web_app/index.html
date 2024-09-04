@@ -267,6 +267,7 @@
         }
         .m-w-20 {
             width: 20%;
+            padding: 8px;
         }
         .o-v-h {
             overflow: hidden;
@@ -282,8 +283,10 @@
         }
         .calendar-config {
             position: absolute;
-            height: calc(100% - 114px);
-            overflow-y: scroll;
+            top: 0;
+            left: 0;
+            height: 100%;
+            overflow-y: auto;
             background: white;
             z-index: 4;
         }
@@ -419,7 +422,7 @@
 </div>
 <div id="calendar" class="page">
     <p><a href="#" onclick="navigate('home')">home</a></p>
-    <h1><button type="button" onclick="toggle_config()">Config</button> Calendar</h1>
+    <h1 class="d-flex" style="gap: 16px;"><button type="button" onclick="toggle_menu()">Menu</button> Calendar</h1>
     <form id="calendar_config" class="calendar-config o-v-h animate m-w-0">
         <fieldset>
             <legend>Step 1</legend>
@@ -505,14 +508,19 @@
             <button type="button" id="close-editor-photo" style="position: absolute; top: calc((34px - 21px) / 2); right: 8px;">x</button>
         </div>
         <div style="padding: 8px 16px 0">
-            <label><span class="text">Contrast</span> <input   type="range" min="0" max="10" step="0.1" value="1.0" name="contrast" id="editor-contrast"></label><br/>
+            <label>
+                <span class="text">Contrast</span>
+                <input type="range" min="0" max="10" step="0.1" value="1.0" name="contrast-range" id="editor-contrast-range">
+                <input type="number" min="0" max="10" step="0.1" value="1.0" name="contrast-number" id="editor-contrast-number">
+            </label>
+            <br/>
             <label><span class="text">Brightness</span> <input type="range" min="0" max="10" step="0.1" value="1.0" name="brightness" id="editor-brightness"></label><br/>
             <label><span class="text">Scale</span> <input      type="range" min="0" max="10" step="0.1" value="1.0" name="scale" id="editor-scale"></label><br/>
             <label><span class="text">Position-X</span> <input type="range" min="-1000" max="1000" step="1" value="0" name="position-x" id="editor-position-x"></label><br/>
             <label><span class="text">Position-Y</span> <input type="range" min="-1000" max="1000" step="1" value="0" name="position-y" id="editor-position-y"></label><br/>
             <label><span class="text">Object-fit</span> <select name="object-fit" id="editor-object-fit">
                 <option value="contain">contain</option>
-                <option value="cover">cover</option>
+                <option value="cover" selected>cover</option>
                 <option value="fill">fill</option>
                 <option value="none">none</option>
                 <option value="scale-down">scale-down</option>
@@ -1287,8 +1295,6 @@
                             photoYear.innerText = item[0];
 
                             const img = document.createElement('img');
-                            // img.style.filter = "contrast(1.0) brightness(1.0)";
-                            // img.style.transform = "scale(1.0) translate(0px, 0px)";
                             img.addEventListener("click", (event) => {
                                 dailyImagesPreview(event);
                             });
@@ -1337,7 +1343,9 @@
     function editPhotoButton(el) {
         const editorButton = document.createElement("button");
         editorButton.onclick = () => {
-            globalCloseEditorReference();
+            globalEditorReference.contrastRangeUpdates && globalEditorReference.contrastRangeUpdates();
+            globalEditorReference.contrastNumberUpdates && globalEditorReference.contrastNumberUpdates();
+            globalEditorReference.closeEditor && globalEditorReference.closeEditor();
             showEditor(el);
         };
         editorButton.textContent = "Edit";
@@ -1345,61 +1353,80 @@
         return editorButton;
     }
     
-    let globalCloseEditorReference = () => {};
+    let globalEditorReference = {};
     
     function showEditor(el) {
         const editorEl = document.querySelector(".editor-photo");
         const classToDisplay = "m-open";
-        let contrastVal = 1.0;
-        let brightnessVal = 1.0;
-        let scaleVal = 1.0;
-        let translateXVal = 0;
-        let translateYVal = 0;
-        let contrastEl = document.querySelector("#editor-contrast");
+
+        let contrastRangeEl = document.querySelector("#editor-contrast-range");
+        let contrastNumberEl = document.querySelector("#editor-contrast-number");
         let brightnessEl = document.querySelector("#editor-brightness");
         let scaleEl = document.querySelector("#editor-scale");
         let translateXEl = document.querySelector("#editor-position-x");
         let translateYEl = document.querySelector("#editor-position-y");
+        let objectFitEl = document.querySelector("#editor-object-fit");
+        
+        let contrastVal = 1.0;
         const reset = () => {
-            contrastEl.value = 1.0;
+            contrastRangeEl.value = 1.0;
+            contrastNumberEl.value = 1.0;
             brightnessEl.value = 1.0;
             scaleEl.value = 1.0;
             translateXEl.value = 0;
             translateYEl.value = 0;
+            objectFitEl.value = "cover"
         }
         const closeEditor = () => {
             editorEl.classList.remove("m-open");
 
             reset();
 
-            contrastEl.removeEventListener('input', updateStyles);
+            contrastRangeEl.removeEventListener('input', contrastRangeUpdates);
+            contrastNumberEl.removeEventListener('input', contrastNumberUpdates);
             brightnessEl.removeEventListener('input', updateStyles);
             scaleEl.removeEventListener('input', updateStyles);
             translateXEl.removeEventListener('input', updateStyles);
             translateYEl.removeEventListener('input', updateStyles);
+            objectFitEl.removeEventListener('change', updateStyles);
         };
-        globalCloseEditorReference = closeEditor;
         const updateStyles = () => {
-            el.style.filter = `contrast(${contrastEl.value}) brightness(${brightnessEl.value})`;
+            el.style.filter = `contrast(${contrastVal}) brightness(${brightnessEl.value})`;
             el.style.transform = `scale(${scaleEl.value}) translate(${translateXEl.value}px, ${translateYEl.value}px)`;
+            el.style.objectFit = objectFitEl.value;
+        }
+        const contrastRangeUpdates = () => {
+            contrastVal = contrastRangeEl.value;
+            contrastNumberEl.value = contrastVal;
+            updateStyles();
+        }
+        const contrastNumberUpdates = () => {
+            contrastVal = contrastNumberEl.value;
+            contrastRangeEl.value = contrastVal;
+            updateStyles();
         }
 
         editorEl.classList.add(classToDisplay);
-        contrastEl.addEventListener('input', updateStyles);
+        
+        contrastRangeEl.addEventListener('input', contrastRangeUpdates);
+        contrastNumberEl.addEventListener('input', contrastNumberUpdates);
         brightnessEl.addEventListener('input', updateStyles);
         scaleEl.addEventListener('input', updateStyles);
         translateXEl.addEventListener('input', updateStyles);
         translateYEl.addEventListener('input', updateStyles);
+        objectFitEl.addEventListener('change', updateStyles); // con be and input instead change
 
         document.querySelector("#reset-all-editor-photo").onclick = () => {
             reset();
-
-            el.style.filter = `contrast(${contrastVal}) brightness(${brightnessVal})`;
-            el.style.transform = `scale(${scaleVal}) translate(${translateXVal}px, ${translateYVal}px)`;
+            updateStyles();
         };
         document.querySelector("#close-editor-photo").onclick = closeEditor;
 
         draggableEditorWindow();
+
+        globalEditorReference["closeEditor"] = closeEditor;
+        globalEditorReference["contrastRangeUpdates"] = contrastRangeUpdates;
+        globalEditorReference["contrastNumberUpdates"] = contrastNumberUpdates;
     }
     
     function draggableEditorWindow() {
@@ -2059,7 +2086,7 @@
 
     const configEl = document.querySelector("#calendar_config");
     
-    function toggle_config() {
+    function toggle_menu() {
         configEl.classList.toggle("m-w-20");
         document.querySelector("body").style.overflow = configEl.classList.contains("m-w-20") ? "hidden" : "auto";
         toggle_bg_overlay();
