@@ -312,7 +312,6 @@
         .editor-photo.m-open { display: block; }
         .editor-photo {
             display: none;
-            padding: 16px;
             background-color: white;
             position: fixed;
             top: 10%;
@@ -325,7 +324,12 @@
         .editor-photo .text {
             min-width: 80px;
             display: inline-block;
+            vertical-align: middle;
+            line-height: 20px;
         }
+        .editor-photo input {
+            vertical-align: middle;
+        } 
         .d-flex {
             display: flex;
         }
@@ -493,27 +497,34 @@
         </div>
     </div>
     <form class="editor-photo">
-        <div class="d-flex justify-content-space-between">
-            <span id="reset-all-editor-photo">Reset</span>
-            <span id="close-editor-photo">Close</span>
+        <div id="editor-photo-header" style="text-align: center; padding: 8px; background-color: lightgrey; border-top-left-radius: 8px; border-top-right-radius: 8px;">
+            Photo editor
+            <button type="button" id="close-editor-photo" style="position: absolute; top: calc((34px - 21px) / 2); right: 8px;">x</button>
         </div>
-        <label><span class="text">Contrast</span> <input   type="range" min="0" max="10" step="0.1" value="1.0" name="contrast" id="editor-contrast"></label><br/>
-        <label><span class="text">Brightness</span> <input type="range" min="0" max="10" step="0.1" value="1.0" name="brightness" id="editor-brightness"></label><br/>
-        <label><span class="text">Scale</span> <input      type="range" min="0" max="10" step="0.1" value="1.0" name="scale" id="editor-scale"></label><br/>
-        <label><span class="text">Position-X</span> <input type="range" min="-1000" max="1000" step="1" value="0" name="position-x" id="editor-position-x"></label><br/>
-        <label><span class="text">Position-Y</span> <input type="range" min="-1000" max="1000" step="1" value="0" name="position-y" id="editor-position-y"></label><br/>
-        <label><span class="text">Object-fit</span> <select name="object-fit" id="editor-object-fit">
-            <option value="contain">contain</option>
-            <option value="cover">cover</option>
-            <option value="fill">fill</option>
-            <option value="none">none</option>
-            <option value="scale-down">scale-down</option>
-            <option value="inherit">inherit</option>
-            <option value="initial">initial</option>
-            <option value="revert">revert</option>
-            <option value="revert-layer">revert-layer</option>
-            <option value="unset">unset</option>
-        </select></label>
+        <div style="padding: 8px 16px 0">
+            <label><span class="text">Contrast</span> <input   type="range" min="0" max="10" step="0.1" value="1.0" name="contrast" id="editor-contrast"></label><br/>
+            <label><span class="text">Brightness</span> <input type="range" min="0" max="10" step="0.1" value="1.0" name="brightness" id="editor-brightness"></label><br/>
+            <label><span class="text">Scale</span> <input      type="range" min="0" max="10" step="0.1" value="1.0" name="scale" id="editor-scale"></label><br/>
+            <label><span class="text">Position-X</span> <input type="range" min="-1000" max="1000" step="1" value="0" name="position-x" id="editor-position-x"></label><br/>
+            <label><span class="text">Position-Y</span> <input type="range" min="-1000" max="1000" step="1" value="0" name="position-y" id="editor-position-y"></label><br/>
+            <label><span class="text">Object-fit</span> <select name="object-fit" id="editor-object-fit">
+                <option value="contain">contain</option>
+                <option value="cover">cover</option>
+                <option value="fill">fill</option>
+                <option value="none">none</option>
+                <option value="scale-down">scale-down</option>
+                <option value="inherit">inherit</option>
+                <option value="initial">initial</option>
+                <option value="revert">revert</option>
+                <option value="revert-layer">revert-layer</option>
+                <option value="unset">unset</option>
+            </select></label>
+        </div>
+        <hr>
+<!--        <div class="d-flex justify-content-space-between" style="padding-bottom: 8px">-->
+        <div style="padding: 0 16px 8px">
+            <button type="button" id="reset-all-editor-photo">Reset</button>
+        </div>
     </form>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
@@ -1384,6 +1395,39 @@
             el.style.transform = `scale(${scaleVal}) translate(${translateXVal}px, ${translateYVal}px)`;
         };
         document.querySelector("#close-editor-photo").onclick = closeEditor;
+
+        draggableEditorWindow();
+    }
+    
+    function draggableEditorWindow() {
+        const popup = document.querySelector('.editor-photo');
+        const popupHeader = document.querySelector('#editor-photo-header');
+        let offsetX, offsetY, isDragging = false;
+
+        // Mouse down event to start dragging
+        popupHeader.addEventListener('mousedown', (e) => {
+            if(e.target.nodeName === 'button') return;
+
+            isDragging = true;
+            offsetX = e.clientX - popup.offsetLeft;
+            offsetY = e.clientY - popup.offsetTop;
+            document.body.style.cursor = 'grabbing';
+        });
+
+        // Mouse move event to drag the popup
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                popup.style.left = `${e.clientX - offsetX}px`;
+                popup.style.top = `${e.clientY - offsetY}px`;
+            }
+        });
+
+        // Mouse up event to stop dragging
+        document.addEventListener('mouseup', (e) => {
+            if(e.target.nodeName === 'button') return;
+            isDragging = false;
+            document.body.style.cursor = 'default';
+        });
     }
     
     function clearCalendar() {
