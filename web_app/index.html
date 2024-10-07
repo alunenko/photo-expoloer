@@ -510,19 +510,40 @@
         <div style="padding: 8px 16px 0">
             <label>
                 <span class="text">Contrast</span>
-                <input type="range" min="0" max="10" step="0.1" value="1.0" name="contrast-range" id="editor-contrast-range">
-                <input type="number" min="0" max="10" step="0.1" value="1.0" name="contrast-number" id="editor-contrast-number">
+                <input type="range"  min="0" max="10" step="0.1" value="1.0" name="contrast-range"  id="editor-contrast-range" />
+                <input type="number" min="0" max="10" step="0.1" value="1.0" name="contrast-number" id="editor-contrast-number" />
             </label>
             <br/>
             <label>
                 <span class="text">Brightness</span>
-                <input type="range" min="0" max="10" step="0.1" value="1.0" name="brightness-range" id="editor-brightness-range">
-                <input type="number" min="0" max="10" step="0.1" value="1.0" name="brightness-number" id="editor-brightness-number">
+                <input type="range"  min="0" max="10" step="0.1" value="1.0" name="brightness-range"  id="editor-brightness-range" />
+                <input type="number" min="0" max="10" step="0.1" value="1.0" name="brightness-number" id="editor-brightness-number" />
             </label>
             <br/>
-            <label><span class="text">Scale</span> <input      type="range" min="0" max="10" step="0.1" value="1.0" name="scale" id="editor-scale"></label><br/>
-            <label><span class="text">Position-X</span> <input type="range" min="-1000" max="1000" step="1" value="0" name="position-x" id="editor-position-x"></label><br/>
-            <label><span class="text">Position-Y</span> <input type="range" min="-1000" max="1000" step="1" value="0" name="position-y" id="editor-position-y"></label><br/>
+            <label>
+                <span class="text">Scale</span>
+                <input type="range"  min="0" max="10" step="0.1" value="1" name="scale-range"  id="editor-scale-range" />
+                <input type="number" min="0" max="10" step="0.1" value="1" name="scale-number" id="editor-scale-number" />
+            </label>
+            <br/>
+            <label>
+                <span class="text">Position-X</span>
+                <input type="range"  min="-1000" max="1000" step="1"   value="0" name="position-x-range"  id="editor-translate-x-range" />
+                <input type="number" min="-1000" max="1000" step="0.1" value="0" name="position-x-number" id="editor-translate-x-number" />
+            </label>
+            <br/>
+            <label>
+                <span class="text">Position-Y</span>
+                <input type="range"  min="-1000" max="1000" step="1"   value="0" name="position-y-range"  id="editor-translate-y-range" />
+                <input type="number" min="-1000" max="1000" step="0.1" value="0" name="position-y-number" id="editor-translate-y-number" />
+            </label>
+            <br/>
+            <label>
+                <span class="text">Rotate</span>
+                <input type="range"  min="0" max="360" step="1"   value="0" name="rotate-range"  id="editor-rotate-range" />
+                <input type="number" min="0" max="360" step="0.1" value="0" name="rotate-number" id="editor-rotate-number" />
+            </label>
+            <br/>
             <label><span class="text">Object-fit</span> <select name="object-fit" id="editor-object-fit">
                 <option value="contain">contain</option>
                 <option value="cover" selected>cover</option>
@@ -1347,102 +1368,118 @@
 
     function editPhotoButton(el) {
         const editorButton = document.createElement("button");
-        editorButton.onclick = () => {
-            globalEditorReference.contrastRangeUpdates && globalEditorReference.contrastRangeUpdates();
-            globalEditorReference.contrastNumberUpdates && globalEditorReference.contrastNumberUpdates();
-            globalEditorReference.brightnessRangeUpdates && globalEditorReference.brightnessRangeUpdates();
-            globalEditorReference.brightnessNumberUpdates && globalEditorReference.brightnessNumberUpdates();
-            globalEditorReference.closeEditor && globalEditorReference.closeEditor();
-            showEditor(el);
-        };
         editorButton.textContent = "Edit";
         editorButton.className = "editor-button";
+        
+        editorButton.onclick = () => {
+            showEditor(el);
+        };
+        
         return editorButton;
     }
-    
-    let globalEditorReference = {};
     
     function showEditor(el) {
         const editorEl = document.querySelector(".editor-photo");
         const classToDisplay = "m-open";
-
-        <!--region Contrast-->
-        let contrastRangeEl = document.querySelector("#editor-contrast-range");
-        let contrastNumberEl = document.querySelector("#editor-contrast-number");
-        <!--endregion-->
-        <!--region Brightness-->
-        let brightnessRangeEl = document.querySelector("#editor-brightness-range");
-        let brightnessNumberEl = document.querySelector("#editor-brightness-number");
-        <!--endregion-->
-        let scaleEl = document.querySelector("#editor-scale");
-        let translateXEl = document.querySelector("#editor-position-x");
-        let translateYEl = document.querySelector("#editor-position-y");
-        let objectFitEl = document.querySelector("#editor-object-fit");
+        const defaultObjectFitValue = "cover";
         
-        let contrastVal = 1.0;
-        let brightnessVal = 1.0;
+        const controls = {
+            contrast: {
+                range: document.querySelector("#editor-contrast-range"),
+                number: document.querySelector("#editor-contrast-number"),
+                value: 1.0
+            },
+            brightness: {
+                range: document.querySelector("#editor-brightness-range"),
+                number: document.querySelector("#editor-brightness-number"),
+                value: 1.0
+            },
+            scale: {
+                range: document.querySelector("#editor-scale-range"),
+                number: document.querySelector("#editor-scale-number"),
+                value: 1
+            },
+            rotate: {
+                range: document.querySelector("#editor-rotate-range"),
+                number: document.querySelector("#editor-rotate-number"),
+                value: 0
+            },
+            translateX: {
+                range: document.querySelector("#editor-translate-x-range"),
+                number: document.querySelector("#editor-translate-x-number"),
+                value: 0
+            },
+            translateY: {
+                range: document.querySelector("#editor-translate-y-range"),
+                number: document.querySelector("#editor-translate-y-number"),
+                value: 0
+            },
+            objectFit: document.querySelector("#editor-object-fit")
+        }
         const reset = () => {
-            contrastRangeEl.value = 1.0;
-            contrastNumberEl.value = 1.0;
-            brightnessRangeEl.value = 1.0;
-            brightnessNumberEl.value = 1.0;
-            scaleEl.value = 1.0;
-            translateXEl.value = 0;
-            translateYEl.value = 0;
-            objectFitEl.value = "cover"
+            for (const control in controls) {
+                const isSpecialControl = ["scale", "contrast", "brightness"].includes(control);
+                const defaultValue = isSpecialControl ? 1 : 0;
+
+                if (controls[control].range) {
+                    controls[control].range.value = defaultValue;
+                    controls[control].number.value = defaultValue;
+                    controls[control].value = defaultValue;
+                }
+            }
+
+
+            controls.objectFit.value = defaultObjectFitValue;
+        }
+        const removeControlListeners = () => {
+            for(const control in controls) {
+                if(controls[control].range) {
+                    controls[control].range.removeEventListener("input", createUpdateHandler(controls[control]));
+                    controls[control].number.removeEventListener("input", createUpdateHandler(controls[control]));
+                }
+            }
+
+            controls.objectFit.removeEventListener("change", updateStyles);
+        }
+        const createRangeUpdateHandler = (control) => {
+            return () => {
+                control.value = control.range.value;
+                control.number.value = control.value;
+                updateStyles();
+            }
+        }
+        const createNumberUpdateHandler = (control) => {
+            return () => {
+                control.value = control.number.value;
+                control.range.value = control.value;
+                updateStyles();
+            };
+        };
+        const addControlListeners = () => {
+            for(const control in controls) {
+                if(controls[control].range) {
+                    controls[control].range.addEventListener("input", createRangeUpdateHandler(controls[control]));
+                    controls[control].number.addEventListener("input", createNumberUpdateHandler(controls[control]));
+                }
+            }
+
+            controls.objectFit.addEventListener("change", updateStyles);
         }
         const closeEditor = () => {
             editorEl.classList.remove("m-open");
 
             reset();
-
-            contrastRangeEl.removeEventListener('input', contrastRangeUpdates);
-            contrastNumberEl.removeEventListener('input', contrastNumberUpdates);
-            brightnessRangeEl.removeEventListener('input', brightnessRangeUpdates);
-            brightnessNumberEl.removeEventListener('input', brightnessNumberUpdates);
-            scaleEl.removeEventListener('input', updateStyles);
-            translateXEl.removeEventListener('input', updateStyles);
-            translateYEl.removeEventListener('input', updateStyles);
-            objectFitEl.removeEventListener('change', updateStyles);
+            removeControlListeners();
         };
         const updateStyles = () => {
-            el.style.filter = `contrast(${contrastVal}) brightness(${brightnessVal})`;
-            el.style.transform = `scale(${scaleEl.value}) translate(${translateXEl.value}px, ${translateYEl.value}px)`;
-            el.style.objectFit = objectFitEl.value;
-        }
-        const contrastRangeUpdates = () => {
-            contrastVal = contrastRangeEl.value;
-            contrastNumberEl.value = contrastVal;
-            updateStyles();
-        }
-        const contrastNumberUpdates = () => {
-            contrastVal = contrastNumberEl.value;
-            contrastRangeEl.value = contrastVal;
-            updateStyles();
-        }
-
-        const brightnessRangeUpdates = () => {
-            brightnessVal = brightnessRangeEl.value;
-            brightnessNumberEl.value = brightnessVal;
-            updateStyles();
-        }
-        const brightnessNumberUpdates = () => {
-            brightnessVal = brightnessNumberEl.value;
-            brightnessRangeEl.value = brightnessVal;
-            updateStyles();
+            el.style.filter = `contrast(${controls.contrast.value}) brightness(${controls.brightness.value})`;
+            el.style.transform = `scale(${controls.scale.value}) translate(${controls.translateX.value}px, ${controls.translateY.value}px) rotate(${controls.rotate.value}deg)`;
+            el.style.objectFit = controls.objectFit.value;
         }
 
         editorEl.classList.add(classToDisplay);
+        addControlListeners();
         
-        contrastRangeEl.addEventListener('input', contrastRangeUpdates);
-        contrastNumberEl.addEventListener('input', contrastNumberUpdates);
-        brightnessRangeEl.addEventListener('input', brightnessRangeUpdates);
-        brightnessNumberEl.addEventListener('input', brightnessNumberUpdates);
-        scaleEl.addEventListener('input', updateStyles);
-        translateXEl.addEventListener('input', updateStyles);
-        translateYEl.addEventListener('input', updateStyles);
-        objectFitEl.addEventListener('change', updateStyles); // con be and input instead change
-
         document.querySelector("#reset-all-editor-photo").onclick = () => {
             reset();
             updateStyles();
@@ -1450,12 +1487,6 @@
         document.querySelector("#close-editor-photo").onclick = closeEditor;
 
         draggableEditorWindow();
-
-        globalEditorReference["closeEditor"] = closeEditor;
-        globalEditorReference["contrastRangeUpdates"] = contrastRangeUpdates;
-        globalEditorReference["contrastNumberUpdates"] = contrastNumberUpdates;
-        globalEditorReference["brightnessRangeUpdates"] = brightnessRangeUpdates;
-        globalEditorReference["brightnessNumberUpdates"] = brightnessNumberUpdates;
     }
     
     function draggableEditorWindow() {
