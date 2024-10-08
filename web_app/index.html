@@ -123,6 +123,7 @@
             position: relative;
             border: 2px solid black;
             background-color: white;
+            overflow: hidden;
         }
         .month-cell img {
             object-fit: cover;
@@ -335,7 +336,18 @@
         }
         .editor-photo input {
             vertical-align: middle;
-        } 
+        }
+        .editor-photo input,
+        .editor-photo select {
+            min-width: 90px;
+            box-sizing: border-box;
+        }
+        .editor-photo-predefined-value {
+            min-width: 70px;
+            display: inline-block;
+        }
+        .editor-photo-predefined-value.m-last-saved {color: #2d75ff;}
+        .editor-photo-predefined-value.m-default {color: black;}
         .d-flex {
             display: flex;
         }
@@ -433,7 +445,7 @@
                     and then
                 </label><br />
                 <button class="w-100" onclick="scanFolderI.scanFolder('calendar', document.getElementById('calendar-config-scan-folder').value, '')">Scan folder</button>
-                <span style="display: block; text-align: center; font-size: 18px; font-weight: bold; text-transform: uppercase; text-decoration: underline;">or</span>
+                <span class="editor-photo-predefined-value" style="display: block; text-align: center; font-size: 18px; font-weight: bold; text-transform: uppercase; text-decoration: underline;">or</span>
                 <span>Select previous results</span><br />
                 <label>
                     <input type="file" id="upload_scan_results_file_path" style="width: calc(100% - 67px);">
@@ -512,55 +524,128 @@
                 <span class="text">Contrast</span>
                 <input type="range"  min="0" max="10" step="0.1" value="1.0" name="contrast-range"  id="editor-contrast-range" />
                 <input type="number" min="0" max="10" step="0.1" value="1.0" name="contrast-number" id="editor-contrast-number" />
+                <span id="predefined-editor-contrast" class="editor-photo-predefined-value m-last-saved">1</span>
+                <span id="default-editor-contrast" class="editor-photo-predefined-value m-default">1</span>
             </label>
             <br/>
             <label>
                 <span class="text">Brightness</span>
                 <input type="range"  min="0" max="10" step="0.1" value="1.0" name="brightness-range"  id="editor-brightness-range" />
                 <input type="number" min="0" max="10" step="0.1" value="1.0" name="brightness-number" id="editor-brightness-number" />
+                <span id="predefined-editor-brightness" class="editor-photo-predefined-value m-last-saved">1</span>
+                <span id="default-editor-brightness" class="editor-photo-predefined-value m-default">1</span>
             </label>
             <br/>
             <label>
                 <span class="text">Scale</span>
                 <input type="range"  min="0" max="10" step="0.1" value="1" name="scale-range"  id="editor-scale-range" />
                 <input type="number" min="0" max="10" step="0.1" value="1" name="scale-number" id="editor-scale-number" />
+                <span id="predefined-editor-scale" class="editor-photo-predefined-value m-last-saved">1</span>
+                <span id="default-editor-scale" class="editor-photo-predefined-value m-default">1</span>
             </label>
             <br/>
             <label>
                 <span class="text">Position-X</span>
-                <input type="range"  min="-1000" max="1000" step="1"   value="0" name="position-x-range"  id="editor-translate-x-range" />
-                <input type="number" min="-1000" max="1000" step="0.1" value="0" name="position-x-number" id="editor-translate-x-number" />
+                <input type="range"  min="-1000" max="1000" step="1" value="0" name="position-x-range"  id="editor-translate-x-range" />
+                <input type="number" min="-1000" max="1000" step="1" value="0" name="position-x-number" id="editor-translate-x-number" />
+                <span id="predefined-editor-translate-x" class="editor-photo-predefined-value m-last-saved">0</span>
+                <span id="default-editor-translate-x" class="editor-photo-predefined-value m-default">0</span>
             </label>
             <br/>
             <label>
                 <span class="text">Position-Y</span>
-                <input type="range"  min="-1000" max="1000" step="1"   value="0" name="position-y-range"  id="editor-translate-y-range" />
-                <input type="number" min="-1000" max="1000" step="0.1" value="0" name="position-y-number" id="editor-translate-y-number" />
+                <input type="range"  min="-1000" max="1000" step="1" value="0" name="position-y-range"  id="editor-translate-y-range" />
+                <input type="number" min="-1000" max="1000" step="1" value="0" name="position-y-number" id="editor-translate-y-number" />
+                <span id="predefined-editor-translate-y" class="editor-photo-predefined-value m-last-saved">0</span>
+                <span id="default-editor-translate-y" class="editor-photo-predefined-value m-default">0</span>
             </label>
             <br/>
             <label>
                 <span class="text">Rotate</span>
                 <input type="range"  min="0" max="360" step="1"   value="0" name="rotate-range"  id="editor-rotate-range" />
                 <input type="number" min="0" max="360" step="0.1" value="0" name="rotate-number" id="editor-rotate-number" />
+                <span id="predefined-editor-rotate" class="editor-photo-predefined-value m-last-saved">0</span>
+                <span id="default-editor-rotate" class="editor-photo-predefined-value m-default">0</span>
             </label>
             <br/>
-            <label><span class="text">Object-fit</span> <select name="object-fit" id="editor-object-fit">
-                <option value="contain">contain</option>
-                <option value="cover" selected>cover</option>
-                <option value="fill">fill</option>
-                <option value="none">none</option>
-                <option value="scale-down">scale-down</option>
-                <option value="inherit">inherit</option>
-                <option value="initial">initial</option>
-                <option value="revert">revert</option>
-                <option value="revert-layer">revert-layer</option>
-                <option value="unset">unset</option>
-            </select></label>
+            <label>
+                <span class="text" style="min-width: 221px;">Object-fit</span>
+                <select name="object-fit" id="editor-object-fit">
+                    <option value="contain">contain</option>
+                    <option value="cover" selected>cover</option>
+                    <option value="fill">fill</option>
+                    <option value="none">none</option>
+                    <option value="scale-down">scale-down</option>
+                    <option value="inherit">inherit</option>
+                    <option value="initial">initial</option>
+                    <option value="revert">revert</option>
+                    <option value="revert-layer">revert-layer</option>
+                    <option value="unset">unset</option>
+                </select>
+                <span id="predefined-editor-object-fit" class="editor-photo-predefined-value m-last-saved">cover</span>
+                <span id="default-editor-object-fit" class="editor-photo-predefined-value m-default">cover</span>
+            </label>
+        </div>
+        <div style="padding: 0 16px">
+            <hr>
+        </div>
+        <div style="padding: 0 16px">
+            <label>
+                <span class="text">Size</span>
+                <input type="range"  min="10" max="172" step="1" value="72" name="number-size-range"  id="editor-number-size-range" />
+                <input type="number" min="10" max="172" step="1" value="72" name="number-size-number" id="editor-number-size-number" />
+                <span id="predefined-number-size" class="editor-photo-predefined-value m-last-saved">72</span>
+                <span id="default-number-size" class="editor-photo-predefined-value m-default">72</span>
+            </label>
+            <br/>
+            <label>
+                <span class="text">Position x</span>
+                <input type="range"  min="-1000" max="1000" step="1" value="0" name="position-number-x-range"  id="editor-number-translate-x-range" />
+                <input type="number" min="-1000" max="1000" step="1" value="0" name="position-number-x-number" id="editor-number-translate-x-number" />
+                <span id="predefined-number-translate-x" class="editor-photo-predefined-value m-last-saved">0</span>
+                <span id="default-number-translate-x" class="editor-photo-predefined-value m-default">0</span>
+            </label>
+            <br/>
+            <label>
+                <span class="text">Position y</span>
+                <input type="range"  min="-1000" max="1000" step="1" value="0" name="position-y-range"  id="editor-number-translate-y-range" />
+                <input type="number" min="-1000" max="1000" step="1" value="0" name="position-y-number" id="editor-number-translate-y-number" />
+                <span id="predefined-number-translate-y" class="editor-photo-predefined-value m-last-saved">0</span>
+                <span id="default-number-translate-y" class="editor-photo-predefined-value m-default">0</span>
+            </label>
+            <br/>
+            <label>
+                <span class="text" style="min-width: 221px;">Color</span>
+                <input type="color" name="number-color" id="editor-number-color" value="#ffffff" />
+                <span id="predefined-number-color" class="editor-photo-predefined-value m-last-saved">#ffffff</span>
+                <span id="default-number-color" class="editor-photo-predefined-value m-default">#ffffff</span>
+            </label>
+            <br />
+            <label>
+                <span class="text" style="min-width: 221px;">Mix blend mode</span>
+                <select name="mix-blend" id="editor-number-mix-blend">
+                    <option value="difference" selected>difference</option>
+                    <option value="unset">unset</option>
+                </select>
+                <span id="predefined-number-mix-blend" class="editor-photo-predefined-value m-last-saved">difference</span>
+                <span id="default-number-mix-blend" class="editor-photo-predefined-value m-default">difference</span>
+            </label>
+        </div>
+        <div style="padding: 0 16px">
+            <hr>
+        </div>
+        <div style="padding: 0 16px">
+            <p style="color: #2d75ff; font-size: 12px; margin: 0">*last saved</p>
+            <p style="color: black;   font-size: 12px; margin: 0">**default</p>
         </div>
         <hr>
 <!--        <div class="d-flex justify-content-space-between" style="padding-bottom: 8px">-->
-        <div style="padding: 0 16px 8px">
-            <button type="button" id="reset-all-editor-photo">Reset</button>
+        <div class="d-flex justify-content-space-between" style="padding: 0 16px 8px">
+            <div>
+                <button type="button" id="reset-all-editor-photo-last-saved" class="btn-danger">Reset to last saved changes</button>
+                <button type="button" id="reset-all-editor-photo" class="btn-danger">Reset to default</button>
+            </div>
+            <button type="button" id="editor-photo-save">Save</button>
         </div>
     </form>
 </div>
@@ -1380,6 +1465,7 @@
     
     function showEditor(el) {
         const editorEl = document.querySelector(".editor-photo");
+        const numberOfTheDay = el.parentNode.parentNode.parentNode.querySelector(".m-day");
         const classToDisplay = "m-open";
         const defaultObjectFitValue = "cover";
         
@@ -1404,17 +1490,34 @@
                 number: document.querySelector("#editor-rotate-number"),
                 value: 0
             },
-            translateX: {
+            photoTranslateX: {
                 range: document.querySelector("#editor-translate-x-range"),
                 number: document.querySelector("#editor-translate-x-number"),
                 value: 0
             },
-            translateY: {
+            photoTranslateY: {
                 range: document.querySelector("#editor-translate-y-range"),
                 number: document.querySelector("#editor-translate-y-number"),
                 value: 0
             },
-            objectFit: document.querySelector("#editor-object-fit")
+            objectFit: document.querySelector("#editor-object-fit"),
+            color: document.querySelector("#editor-number-color"),
+            mixBlend: document.querySelector("#editor-number-mix-blend"),
+            dayTranslateX: {
+                range: document.querySelector("#editor-number-translate-x-number"),
+                number: document.querySelector("#editor-number-translate-x-range"),
+                value: 0
+            },
+            dayTranslateY: {
+                range: document.querySelector("#editor-number-translate-y-range"),
+                number: document.querySelector("#editor-number-translate-y-number"),
+                value: 0
+            },
+            size: {
+                range: document.querySelector("#editor-number-size-range"),
+                number: document.querySelector("#editor-number-size-number"),
+                value: `72px`
+            },
         }
         const reset = () => {
             for (const control in controls) {
@@ -1430,12 +1533,16 @@
 
 
             controls.objectFit.value = defaultObjectFitValue;
+            controls.size.value = "72px";
+            controls.color.setAttribute("disabled", true);
+            controls.color.value = "white";
+            controls.mixBlend.value = "difference";
         }
         const removeControlListeners = () => {
             for(const control in controls) {
                 if(controls[control].range) {
-                    controls[control].range.removeEventListener("input", createUpdateHandler(controls[control]));
-                    controls[control].number.removeEventListener("input", createUpdateHandler(controls[control]));
+                    controls[control].range.removeEventListener("input", createRangeUpdateHandler(controls[control]));
+                    controls[control].number.removeEventListener("input", createNumberUpdateHandler(controls[control]));
                 }
             }
 
@@ -1464,6 +1571,8 @@
             }
 
             controls.objectFit.addEventListener("change", updateStyles);
+            controls.mixBlend.addEventListener("change", updateStyles);
+            controls.color.addEventListener("change", updateStyles);
         }
         const closeEditor = () => {
             editorEl.classList.remove("m-open");
@@ -1473,10 +1582,16 @@
         };
         const updateStyles = () => {
             el.style.filter = `contrast(${controls.contrast.value}) brightness(${controls.brightness.value})`;
-            el.style.transform = `scale(${controls.scale.value}) translate(${controls.translateX.value}px, ${controls.translateY.value}px) rotate(${controls.rotate.value}deg)`;
+            el.style.transform = `scale(${controls.scale.value}) translate(${controls.photoTranslateY.value}px, ${controls.photoTranslateY.value}px) rotate(${controls.rotate.value}deg)`;
             el.style.objectFit = controls.objectFit.value;
-        }
 
+            numberOfTheDay.style.fontSize = `${controls.size.value}px`;
+            numberOfTheDay.style.right = `${controls.dayTranslateX.value}px`;
+            numberOfTheDay.style.bottom = `${controls.dayTranslateY.value}px`;
+            numberOfTheDay.style.color = `${controls.color.value}`;
+            numberOfTheDay.style.mixBlendMode = `${controls.mixBlend.value}`;
+        }
+        
         editorEl.classList.add(classToDisplay);
         addControlListeners();
         
