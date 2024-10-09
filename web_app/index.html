@@ -346,8 +346,14 @@
             min-width: 70px;
             display: inline-block;
         }
-        .editor-photo-predefined-value.m-last-saved {color: #2d75ff;}
-        .editor-photo-predefined-value.m-default {color: black;}
+        .editor-photo-predefined-value.m-saved,
+        .legend.m-saved {color: #2d75ff;}
+        .editor-photo-predefined-value.m-default,
+        .legend.m-default {color: black;}
+        .legend {
+            margin: 0;
+            font-size: 12px;
+        }
         .d-flex {
             display: flex;
         }
@@ -436,7 +442,7 @@
     <p><a href="#" onclick="navigate('home')">home</a></p>
     <h1 class="d-flex" style="gap: 16px;"><button type="button" onclick="toggle_menu()">Menu</button> Calendar</h1>
     <form id="calendar_config" class="calendar-config o-v-h animate m-w-0">
-        <fieldset>
+        <fieldset id="step1">
             <legend>Step 1</legend>
             <div class="m-e-y-4">
                 <span>Provide a path to photo: </span><br />
@@ -517,14 +523,15 @@
     <form class="editor-photo">
         <div id="editor-photo-header" style="text-align: center; padding: 8px; background-color: lightgrey; border-top-left-radius: 8px; border-top-right-radius: 8px;">
             <span class="editor-photo-header-text" title="Click and hold for drag/move window">Photo editor</span>
-            <button type="button" id="close-editor-photo" style="position: absolute; top: calc((34px - 21px) / 2); right: 8px;">x</button>
+            <button type="button" id="close-editor-photo"
+                    style="position: absolute; top: calc((34px - 21px) / 2); right: 8px;">x</button>
         </div>
         <div style="padding: 8px 16px 0">
             <label>
                 <span class="text">Contrast</span>
                 <input type="range"  min="0" max="10" step="0.1" value="1.0" name="contrast-range"  id="editor-contrast-range" />
                 <input type="number" min="0" max="10" step="0.1" value="1.0" name="contrast-number" id="editor-contrast-number" />
-                <span id="predefined-editor-contrast" class="editor-photo-predefined-value m-last-saved">1</span>
+                <span id="predefined-editor-contrast" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-editor-contrast" class="editor-photo-predefined-value m-default">1</span>
             </label>
             <br/>
@@ -532,7 +539,7 @@
                 <span class="text">Brightness</span>
                 <input type="range"  min="0" max="10" step="0.1" value="1.0" name="brightness-range"  id="editor-brightness-range" />
                 <input type="number" min="0" max="10" step="0.1" value="1.0" name="brightness-number" id="editor-brightness-number" />
-                <span id="predefined-editor-brightness" class="editor-photo-predefined-value m-last-saved">1</span>
+                <span id="predefined-editor-brightness" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-editor-brightness" class="editor-photo-predefined-value m-default">1</span>
             </label>
             <br/>
@@ -540,7 +547,7 @@
                 <span class="text">Scale</span>
                 <input type="range"  min="0" max="10" step="0.1" value="1" name="scale-range"  id="editor-scale-range" />
                 <input type="number" min="0" max="10" step="0.1" value="1" name="scale-number" id="editor-scale-number" />
-                <span id="predefined-editor-scale" class="editor-photo-predefined-value m-last-saved">1</span>
+                <span id="predefined-editor-scale" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-editor-scale" class="editor-photo-predefined-value m-default">1</span>
             </label>
             <br/>
@@ -548,7 +555,7 @@
                 <span class="text">Position-X</span>
                 <input type="range"  min="-1000" max="1000" step="1" value="0" name="position-x-range"  id="editor-translate-x-range" />
                 <input type="number" min="-1000" max="1000" step="1" value="0" name="position-x-number" id="editor-translate-x-number" />
-                <span id="predefined-editor-translate-x" class="editor-photo-predefined-value m-last-saved">0</span>
+                <span id="predefined-editor-translate-x" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-editor-translate-x" class="editor-photo-predefined-value m-default">0</span>
             </label>
             <br/>
@@ -556,7 +563,7 @@
                 <span class="text">Position-Y</span>
                 <input type="range"  min="-1000" max="1000" step="1" value="0" name="position-y-range"  id="editor-translate-y-range" />
                 <input type="number" min="-1000" max="1000" step="1" value="0" name="position-y-number" id="editor-translate-y-number" />
-                <span id="predefined-editor-translate-y" class="editor-photo-predefined-value m-last-saved">0</span>
+                <span id="predefined-editor-translate-y" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-editor-translate-y" class="editor-photo-predefined-value m-default">0</span>
             </label>
             <br/>
@@ -564,7 +571,7 @@
                 <span class="text">Rotate</span>
                 <input type="range"  min="0" max="360" step="1"   value="0" name="rotate-range"  id="editor-rotate-range" />
                 <input type="number" min="0" max="360" step="0.1" value="0" name="rotate-number" id="editor-rotate-number" />
-                <span id="predefined-editor-rotate" class="editor-photo-predefined-value m-last-saved">0</span>
+                <span id="predefined-editor-rotate" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-editor-rotate" class="editor-photo-predefined-value m-default">0</span>
             </label>
             <br/>
@@ -582,7 +589,7 @@
                     <option value="revert-layer">revert-layer</option>
                     <option value="unset">unset</option>
                 </select>
-                <span id="predefined-editor-object-fit" class="editor-photo-predefined-value m-last-saved">cover</span>
+                <span id="predefined-editor-object-fit" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-editor-object-fit" class="editor-photo-predefined-value m-default">cover</span>
             </label>
         </div>
@@ -594,7 +601,7 @@
                 <span class="text">Size</span>
                 <input type="range"  min="10" max="172" step="1" value="72" name="number-size-range"  id="editor-number-size-range" />
                 <input type="number" min="10" max="172" step="1" value="72" name="number-size-number" id="editor-number-size-number" />
-                <span id="predefined-number-size" class="editor-photo-predefined-value m-last-saved">72</span>
+                <span id="predefined-number-size" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-number-size" class="editor-photo-predefined-value m-default">72</span>
             </label>
             <br/>
@@ -602,7 +609,7 @@
                 <span class="text">Position x</span>
                 <input type="range"  min="-1000" max="1000" step="1" value="0" name="position-number-x-range"  id="editor-number-translate-x-range" />
                 <input type="number" min="-1000" max="1000" step="1" value="0" name="position-number-x-number" id="editor-number-translate-x-number" />
-                <span id="predefined-number-translate-x" class="editor-photo-predefined-value m-last-saved">0</span>
+                <span id="predefined-number-translate-x" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-number-translate-x" class="editor-photo-predefined-value m-default">0</span>
             </label>
             <br/>
@@ -610,14 +617,14 @@
                 <span class="text">Position y</span>
                 <input type="range"  min="-1000" max="1000" step="1" value="0" name="position-y-range"  id="editor-number-translate-y-range" />
                 <input type="number" min="-1000" max="1000" step="1" value="0" name="position-y-number" id="editor-number-translate-y-number" />
-                <span id="predefined-number-translate-y" class="editor-photo-predefined-value m-last-saved">0</span>
+                <span id="predefined-number-translate-y" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-number-translate-y" class="editor-photo-predefined-value m-default">0</span>
             </label>
             <br/>
             <label>
                 <span class="text" style="min-width: 221px;">Color</span>
                 <input type="color" name="number-color" id="editor-number-color" value="#ffffff" />
-                <span id="predefined-number-color" class="editor-photo-predefined-value m-last-saved">#ffffff</span>
+                <span id="predefined-number-color" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-number-color" class="editor-photo-predefined-value m-default">#ffffff</span>
             </label>
             <br />
@@ -627,7 +634,7 @@
                     <option value="difference" selected>difference</option>
                     <option value="unset">unset</option>
                 </select>
-                <span id="predefined-number-mix-blend" class="editor-photo-predefined-value m-last-saved">difference</span>
+                <span id="predefined-number-mix-blend" class="editor-photo-predefined-value m-saved">N/A</span>
                 <span id="default-number-mix-blend" class="editor-photo-predefined-value m-default">difference</span>
             </label>
         </div>
@@ -635,17 +642,17 @@
             <hr>
         </div>
         <div style="padding: 0 16px">
-            <p style="color: #2d75ff; font-size: 12px; margin: 0">*last saved</p>
-            <p style="color: black;   font-size: 12px; margin: 0">**default</p>
+            <p class="legend m-saved">*saved</p>
+            <p class="legend m-default">**default</p>
         </div>
         <hr>
 <!--        <div class="d-flex justify-content-space-between" style="padding-bottom: 8px">-->
         <div class="d-flex justify-content-space-between" style="padding: 0 16px 8px">
             <div>
-                <button type="button" id="reset-all-editor-photo-last-saved" class="btn-danger">Reset to last saved changes</button>
+                <button type="button" id="reset-all-editor-photo-saved" class="btn-danger">Reset to last saved changes</button>
                 <button type="button" id="reset-all-editor-photo" class="btn-danger">Reset to default</button>
             </div>
-            <button type="button" id="editor-photo-save">Save</button>
+            <button type="button" id="editor-photo-save" onclick="saveEditorPhoto()">Save</button>
         </div>
     </form>
 </div>
@@ -653,6 +660,7 @@
 <script>
     let globalData = {};
     let arrangedData = {};
+    let config = {};
     const blobType = {
         image: {
             png: "image/png",
@@ -1361,10 +1369,10 @@
         const numberOfFirstDayInMonth = new Date(+currentYear, +currentMonth, 0).getDay();
         const numberOfLastDayInMonth = new Date(+currentYear, +currentMonth, daysInCurrentMonth).getDay();
 
-        console.log(`currentDate ${currentDate}`);
-        console.log(`daysInCurrentMonth ${daysInCurrentMonth}`);
-        console.log(`numberOfFirstDayInMonth ${numberOfFirstDayInMonth}`);
-        console.log(`numberOfLastDayInMonth ${numberOfLastDayInMonth}`);
+        // console.log(`currentDate ${currentDate}`);
+        // console.log(`daysInCurrentMonth ${daysInCurrentMonth}`);
+        // console.log(`numberOfFirstDayInMonth ${numberOfFirstDayInMonth}`);
+        // console.log(`numberOfLastDayInMonth ${numberOfLastDayInMonth}`);
 
         addCalendarShiftDay(numberOfFirstDayInMonth);
 
@@ -1381,8 +1389,6 @@
                 photoDay.classList.add('m-day');
                 photoDay.innerText = `${dayInMonth}`;
 
-                divElement.appendChild(photoDay);
-
                 let container = document.createElement('div');
                 container.style.overflow = 'hidden';
                 container.style.width = '100%';
@@ -1398,9 +1404,6 @@
                     totalPhotoPerDay += arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].length;
                     arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].forEach(async (file) => {
                         if(file.selected) {
-                            let wrapper = document.createElement('div');
-                            wrapper.style.position = 'relative';
-
                             let photoYear = document.createElement('span');
                             photoYear.classList.add('m-year');
                             photoYear.innerText = item[0];
@@ -1412,11 +1415,15 @@
 
                             const imgSrc = await getBlobImage(file.source_path_log);
                             img.src = getBlob(blobType.image.png, imgSrc.blob);
+                            
+                            const savedData = globalData?.["editor"]?.[+currentMonthLeadZero]?.[dayInMonth]?.[item[0]];
+                            if(savedData) {
+                                applyEditorPhotoValue(photoDay, img, savedData);
+                            }
 
-                            wrapper.appendChild(editPhotoButton(img));
-                            wrapper.appendChild(img);
-                            wrapper.appendChild(photoYear);
-                            container.appendChild(wrapper);
+                            container.appendChild(editPhotoButton(img));
+                            container.appendChild(img);
+                            container.appendChild(photoYear);
                         }
                     });
                 });
@@ -1430,6 +1437,7 @@
                     divElement.appendChild(amountPhotos);
                 }
 
+                divElement.appendChild(photoDay);
                 divElement.appendChild(container);
 
                 document.querySelector('#calendar-content').appendChild(divElement);
@@ -1457,96 +1465,142 @@
         editorButton.className = "editor-button";
         
         editorButton.onclick = () => {
+            //load data into controlls
+            //if editorData -> update SAVED values in template
+            if(globalData?.["editor"]) {
+                const month = el.parentNode.getAttribute("month");
+                const day = el.parentNode.getAttribute("day");
+                const year = el.parentNode.querySelector(".m-year").innerText;
+                
+                const savedData = globalData?.["editor"]?.[month]?.[day]?.[year]; // or default data
+                if(savedData) { // if redudnant fix data and fill it
+                    <!--region From data to form element values -->
+                    document.querySelector("#predefined-editor-contrast").innerHTML = savedData.contrast;
+                    document.querySelector("#predefined-editor-brightness").innerHTML = savedData.brightness;
+                    document.querySelector("#predefined-editor-scale").innerHTML = savedData.scale;
+                    document.querySelector("#predefined-editor-rotate").innerHTML = savedData.rotate;
+                    document.querySelector("#predefined-editor-translate-x").innerHTML = savedData.photoTranslateX;
+                    document.querySelector("#predefined-editor-translate-y").innerHTML = savedData.photoTranslateY;
+                    
+                    document.querySelector("#predefined-editor-object-fit").innerHTML = savedData.objectFit;
+
+                    document.querySelector("#predefined-number-size").innerHTML = savedData.size;
+                    document.querySelector("#predefined-number-translate-x").innerHTML = savedData.dayTranslateX;
+                    document.querySelector("#predefined-number-translate-y").innerHTML = savedData.dayTranslateY;
+                    document.querySelector("#predefined-number-color").innerHTML = savedData.color;
+                    document.querySelector("#predefined-number-mix-blend").innerHTML = savedData.mixBlend;
+                    <!--endregion-->
+
+                    <!--region From saved data to editor controls value -->
+                    for (let controlsKey in editorControls) {
+                        if(editorControls[controlsKey]?.range) {
+                            editorControls[controlsKey].range.value = savedData[controlsKey]; 
+                            editorControls[controlsKey].number.value = savedData[controlsKey];
+                        }
+                    }
+
+                    editorControls.objectFit.value = savedData["objectFit"];
+                    editorControls.mixBlend.value = savedData["mixBlend"];
+                    editorControls.color.value = savedData["color"];
+                    <!--endregion-->
+                }
+            }
             showEditor(el);
         };
         
         return editorButton;
     }
     
+    let referenceToEditor;
+    const editorControls = {
+        contrast: {
+            range: document.querySelector("#editor-contrast-range"),
+            number: document.querySelector("#editor-contrast-number"),
+            value: 1.0
+        },
+        brightness: {
+            range: document.querySelector("#editor-brightness-range"),
+            number: document.querySelector("#editor-brightness-number"),
+            value: 1.0
+        },
+        scale: {
+            range: document.querySelector("#editor-scale-range"),
+            number: document.querySelector("#editor-scale-number"),
+            value: 1
+        },
+        rotate: {
+            range: document.querySelector("#editor-rotate-range"),
+            number: document.querySelector("#editor-rotate-number"),
+            value: 0
+        },
+        photoTranslateX: {
+            range: document.querySelector("#editor-translate-x-range"),
+            number: document.querySelector("#editor-translate-x-number"),
+            value: 0
+        },
+        photoTranslateY: {
+            range: document.querySelector("#editor-translate-y-range"),
+            number: document.querySelector("#editor-translate-y-number"),
+            value: 0
+        },
+        objectFit: document.querySelector("#editor-object-fit"),
+        color: document.querySelector("#editor-number-color"),
+        mixBlend: document.querySelector("#editor-number-mix-blend"),
+        dayTranslateX: {
+            range: document.querySelector("#editor-number-translate-x-number"),
+            number: document.querySelector("#editor-number-translate-x-range"),
+            value: 0
+        },
+        dayTranslateY: {
+            range: document.querySelector("#editor-number-translate-y-range"),
+            number: document.querySelector("#editor-number-translate-y-number"),
+            value: 0
+        },
+        size: {
+            range: document.querySelector("#editor-number-size-range"),
+            number: document.querySelector("#editor-number-size-number"),
+            value: `72px`
+        },
+    }
+    
     function showEditor(el) {
+        referenceToEditor = el.parentNode;
         const editorEl = document.querySelector(".editor-photo");
-        const numberOfTheDay = el.parentNode.parentNode.parentNode.querySelector(".m-day");
+        const numberOfTheDay = referenceToEditor.parentNode.querySelector(".m-day");
         const classToDisplay = "m-open";
         const defaultObjectFitValue = "cover";
         
-        const controls = {
-            contrast: {
-                range: document.querySelector("#editor-contrast-range"),
-                number: document.querySelector("#editor-contrast-number"),
-                value: 1.0
-            },
-            brightness: {
-                range: document.querySelector("#editor-brightness-range"),
-                number: document.querySelector("#editor-brightness-number"),
-                value: 1.0
-            },
-            scale: {
-                range: document.querySelector("#editor-scale-range"),
-                number: document.querySelector("#editor-scale-number"),
-                value: 1
-            },
-            rotate: {
-                range: document.querySelector("#editor-rotate-range"),
-                number: document.querySelector("#editor-rotate-number"),
-                value: 0
-            },
-            photoTranslateX: {
-                range: document.querySelector("#editor-translate-x-range"),
-                number: document.querySelector("#editor-translate-x-number"),
-                value: 0
-            },
-            photoTranslateY: {
-                range: document.querySelector("#editor-translate-y-range"),
-                number: document.querySelector("#editor-translate-y-number"),
-                value: 0
-            },
-            objectFit: document.querySelector("#editor-object-fit"),
-            color: document.querySelector("#editor-number-color"),
-            mixBlend: document.querySelector("#editor-number-mix-blend"),
-            dayTranslateX: {
-                range: document.querySelector("#editor-number-translate-x-number"),
-                number: document.querySelector("#editor-number-translate-x-range"),
-                value: 0
-            },
-            dayTranslateY: {
-                range: document.querySelector("#editor-number-translate-y-range"),
-                number: document.querySelector("#editor-number-translate-y-number"),
-                value: 0
-            },
-            size: {
-                range: document.querySelector("#editor-number-size-range"),
-                number: document.querySelector("#editor-number-size-number"),
-                value: `72px`
-            },
-        }
         const reset = () => {
-            for (const control in controls) {
+            for (const control in editorControls) {
                 const isSpecialControl = ["scale", "contrast", "brightness"].includes(control);
                 const defaultValue = isSpecialControl ? 1 : 0;
 
-                if (controls[control].range) {
-                    controls[control].range.value = defaultValue;
-                    controls[control].number.value = defaultValue;
-                    controls[control].value = defaultValue;
+                if (editorControls[control].range) {
+                    if(control === "size") {
+                        editorControls[control].range.value = 72;
+                        editorControls[control].number.value = 72;
+                        editorControls[control].value = 72;
+                    } else {
+                        editorControls[control].range.value = defaultValue;
+                        editorControls[control].number.value = defaultValue;
+                        editorControls[control].value = defaultValue;
+                    }
                 }
             }
 
-
-            controls.objectFit.value = defaultObjectFitValue;
-            controls.size.value = "72px";
-            controls.color.setAttribute("disabled", true);
-            controls.color.value = "white";
-            controls.mixBlend.value = "difference";
+            editorControls.objectFit.value = defaultObjectFitValue;
+            editorControls.color.value = "#ffffff";
+            editorControls.mixBlend.value = "difference";
         }
         const removeControlListeners = () => {
-            for(const control in controls) {
-                if(controls[control].range) {
-                    controls[control].range.removeEventListener("input", createRangeUpdateHandler(controls[control]));
-                    controls[control].number.removeEventListener("input", createNumberUpdateHandler(controls[control]));
+            for(const control in editorControls) {
+                if(editorControls[control].range) {
+                    editorControls[control].range.removeEventListener("input", createRangeUpdateHandler(editorControls[control]));
+                    editorControls[control].number.removeEventListener("input", createNumberUpdateHandler(editorControls[control]));
                 }
             }
 
-            controls.objectFit.removeEventListener("change", updateStyles);
+            editorControls.objectFit.removeEventListener("change", updateStyles);
         }
         const createRangeUpdateHandler = (control) => {
             return () => {
@@ -1557,22 +1611,22 @@
         }
         const createNumberUpdateHandler = (control) => {
             return () => {
-                control.value = control.number.value;
+                control.value = +control.number.value;
                 control.range.value = control.value;
                 updateStyles();
             };
         };
         const addControlListeners = () => {
-            for(const control in controls) {
-                if(controls[control].range) {
-                    controls[control].range.addEventListener("input", createRangeUpdateHandler(controls[control]));
-                    controls[control].number.addEventListener("input", createNumberUpdateHandler(controls[control]));
+            for(const control in editorControls) {
+                if(editorControls[control].range) {
+                    editorControls[control].range.addEventListener("input", createRangeUpdateHandler(editorControls[control]));
+                    editorControls[control].number.addEventListener("input", createNumberUpdateHandler(editorControls[control]));
                 }
             }
 
-            controls.objectFit.addEventListener("change", updateStyles);
-            controls.mixBlend.addEventListener("change", updateStyles);
-            controls.color.addEventListener("change", updateStyles);
+            editorControls.objectFit.addEventListener("change", updateStyles);
+            editorControls.mixBlend.addEventListener("change", updateStyles);
+            editorControls.color.addEventListener("change", updateStyles);
         }
         const closeEditor = () => {
             editorEl.classList.remove("m-open");
@@ -1581,15 +1635,15 @@
             removeControlListeners();
         };
         const updateStyles = () => {
-            el.style.filter = `contrast(${controls.contrast.value}) brightness(${controls.brightness.value})`;
-            el.style.transform = `scale(${controls.scale.value}) translate(${controls.photoTranslateY.value}px, ${controls.photoTranslateY.value}px) rotate(${controls.rotate.value}deg)`;
-            el.style.objectFit = controls.objectFit.value;
+            el.style.filter = `contrast(${editorControls.contrast.value}) brightness(${editorControls.brightness.value})`;
+            el.style.transform = `scale(${editorControls.scale.value}) translate(${editorControls.photoTranslateX.value}px, ${editorControls.photoTranslateY.value}px) rotate(${editorControls.rotate.value}deg)`;
+            el.style.objectFit = editorControls.objectFit.value;
 
-            numberOfTheDay.style.fontSize = `${controls.size.value}px`;
-            numberOfTheDay.style.right = `${controls.dayTranslateX.value}px`;
-            numberOfTheDay.style.bottom = `${controls.dayTranslateY.value}px`;
-            numberOfTheDay.style.color = `${controls.color.value}`;
-            numberOfTheDay.style.mixBlendMode = `${controls.mixBlend.value}`;
+            numberOfTheDay.style.fontSize = `${editorControls.size.value}px`;
+            numberOfTheDay.style.right = `${editorControls.dayTranslateX.value}px`;
+            numberOfTheDay.style.bottom = `${editorControls.dayTranslateY.value}px`;
+            numberOfTheDay.style.color = `${editorControls.color.value}`;
+            numberOfTheDay.style.mixBlendMode = `${editorControls.mixBlend.value}`;
         }
         
         editorEl.classList.add(classToDisplay);
@@ -1599,9 +1653,56 @@
             reset();
             updateStyles();
         };
+        document.querySelector("#reset-all-editor-photo-saved").onclick = () => {
+            const month = el.parentNode.getAttribute("month");
+            const day = el.parentNode.getAttribute("day");
+            const year = el.parentNode.querySelector(".m-year").innerText;
+            
+            const savedData = globalData?.["editor"]?.[month]?.[day]?.[year];
+
+            for (let controlsKey in editorControls) {
+                if(editorControls[controlsKey]?.range) {
+                    editorControls[controlsKey].range.value = savedData[controlsKey];
+                    editorControls[controlsKey].number.value = savedData[controlsKey];
+                }
+            }
+
+            editorControls.objectFit.value = savedData["objectFit"];
+            editorControls.mixBlend.value = savedData["mixBlend"];
+            editorControls.color.value = savedData["color"];
+
+            updateStyles();
+        }
         document.querySelector("#close-editor-photo").onclick = closeEditor;
 
         draggableEditorWindow();
+    }
+    
+    function saveEditorPhoto() {
+        const month = referenceToEditor.getAttribute("month");
+        const day = referenceToEditor.getAttribute("day");
+        const year = referenceToEditor.querySelector(".m-year").innerText;
+        
+        globalData["editor"] = globalData["editor"] || {};
+        globalData["editor"][month] = globalData["editor"][month] || {};
+        globalData["editor"][month][day] = globalData["editor"][month][day] || {};
+        globalData["editor"][month][day][year] = globalData["editor"][month][day][year] || {};
+
+        for (let editorControlsKey in editorControls) {
+            globalData["editor"][month][day][year][editorControlsKey] = editorControls[editorControlsKey].value;
+        }
+    }
+    
+    function applyEditorPhotoValue(dayEl, imgEl, data) {
+        imgEl.style.filter = `contrast(${data.contrast}) brightness(${data.brightness})`;
+        imgEl.style.transform = `scale(${data.scale}) translate(${data.photoTranslateY}px, ${data.photoTranslateY}px) rotate(${data.rotate}deg)`;
+        imgEl.style.objectFit = data.objectFit;
+
+        dayEl.style.fontSize = `${data.size}px`;
+        dayEl.style.right = `${data.dayTranslateX}px`;
+        dayEl.style.bottom = `${data.dayTranslateY}px`;
+        dayEl.style.color = `${data.color}`;
+        dayEl.style.mixBlendMode = `${data.mixBlend}`;
     }
     
     function draggableEditorWindow() {
@@ -1901,10 +2002,10 @@
         buttonsData = {
             download: {
                 id: this.scanFolderResultsButtonId,
-                text: "Download scan folder results",
+                text: "Download project data",
                 eventHandler: this._download.bind(this),
                 eventType: 'click',
-                appendId: 'download_scan_results'
+                appendId: 'step1'
             }
         };
         
@@ -1952,13 +2053,14 @@
             console.log(file);
             if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = (function(e) {
                     const content = e.target.result;
                     globalData = JSON.parse(content);
                     globalData.files.forEach(file => arrangeInputData(file));
                     arrangedData["00"]["00"]["0000"].forEach(file => showMissedDataInFiles(file.source_path_log));
+                    this._showDownloadButton();
                     updateMonthSelectOptions();
-                };
+                }).bind(this);
                 reader.onerror = function(e) {
                     console.error("File could not be read! Code " + e.target.error.code);
                 };
@@ -1990,7 +2092,7 @@
         }
         
         _exportName() {
-            return `${this._scanDate()}_photo-calendar-scan-folder-data.json`;
+            return `${this._scanDate()}_photo-calendar-project.json`;
         }
         
         _removeDownload() {
@@ -2011,12 +2113,16 @@
             } else {
 
             }
-            
+
+            this._showDownloadButton();
+
+            this.outputEl.textContent = isCalendar ? 'Select month.' : "Scanning ended.";
+        }
+        
+        _showDownloadButton() {
             if(globalData?.files.length) {
                 this._createButton.bind(this)(this.buttonsData.download);
             }
-
-            this.outputEl.textContent = isCalendar ? 'Select month.' : "Scanning ended.";
         }
         
         _createButton({id, text, eventType, eventHandler, appendId}) {
