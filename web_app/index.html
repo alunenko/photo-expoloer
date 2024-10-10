@@ -201,6 +201,7 @@
             z-index: 100;
         }
         .preview .scene {
+            position: relative;
             height: 80%;
             border: 1px solid black;
         }
@@ -216,6 +217,15 @@
         .preview .close {
             position: absolute;
             top: 0;
+            right: 0;
+            background-color: white;
+            border: 1px solid black;
+            padding: 5px;
+            cursor: pointer;
+        }
+        .preview .fullscreen {
+            position: absolute;
+            bottom: 0;
             right: 0;
             background-color: white;
             border: 1px solid black;
@@ -1777,6 +1787,8 @@
         // Recursively call the function with the parent element
         return findParentWithAttribute(element.parentNode, attributeName);
     }
+    
+    let previewStateFullscreen = false;
 
     function dailyImagesPreview(event) {
         document.querySelector(".preview") && document.querySelector(".preview").remove(); // close old, before open new
@@ -1823,8 +1835,6 @@
         carouselLoader.appendChild(carouselLoaderLoading);
         carouselLoader.appendChild(carouselLoaderTotal);
 
-        scene.appendChild(carouselLoader);
-
         const close = document.createElement("div");
         close.className = "close";
         close.innerText = "X";
@@ -1833,6 +1843,38 @@
             document.querySelector('#calendar-content').innerHTML = '';
             generateCalendar();
         };
+        
+        const fullScreen = document.createElement("div");
+        fullScreen.className = "fullscreen";
+        fullScreen.innerText = "FS";
+        fullScreen.onclick = () => {
+            const preview = document.querySelector(".preview");
+
+            if(!previewStateFullscreen) {
+                if (preview.requestFullscreen) {
+                    preview.requestFullscreen();
+                } else if (preview.mozRequestFullScreen) { // Firefox
+                    preview.mozRequestFullScreen();
+                } else if (preview.webkitRequestFullscreen) { // Chrome, Safari and Opera
+                    preview.webkitRequestFullscreen();
+                } else if (preview.msRequestFullscreen) { // IE/Edge
+                    preview.msRequestFullscreen();
+                }
+                previewStateFullscreen = true;
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { // Firefox
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) { // Chrome, Safari and Opera
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { // IE/Edge
+                    document.msExitFullscreen();
+                }
+
+                previewStateFullscreen = false;
+            }
+        }
 
         let av = 0;
 
@@ -1884,6 +1926,8 @@
             });
         });
 
+        scene.appendChild(fullScreen);
+        preview.appendChild(carouselLoader);
         preview.appendChild(close);
         preview.appendChild(scene);
         preview.appendChild(carousel);
