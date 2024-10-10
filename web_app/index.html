@@ -218,6 +218,7 @@
             position: absolute;
             top: 0;
             right: 0;
+            z-index: 2;
             background-color: white;
             border: 1px solid black;
             padding: 5px;
@@ -1420,6 +1421,7 @@
 
                             const img = document.createElement('img');
                             img.addEventListener("click", (event) => {
+                                document.body.style.overflow = "hidden";
                                 dailyImagesPreview(event);
                             });
 
@@ -1725,7 +1727,7 @@
     }
     
     function applyEditorPhotoValue(dayEl, imgEl, data) {
-        console.log('applyEditorPhotoValue ', data);
+        // console.log('applyEditorPhotoValue ', data);
         imgEl.style.filter = `contrast(${data.contrast}) brightness(${data.brightness})`;
         imgEl.style.transform = `scale(${data.scale}) translate(${data.photoTranslateX}px, ${data.photoTranslateY}px) rotate(${data.rotate}deg)`;
         imgEl.style.objectFit = data.objectFit;
@@ -1789,6 +1791,39 @@
     }
     
     let previewStateFullscreen = false;
+    let carouselActivePreviewImg = -1;
+    
+    function carouselKeyDown(event) {
+        console.log(event);
+        console.log(event.code === "ArrowRight");
+        if(event.code === "ArrowRight" || event.code === "ArrowLeft" || event.code === "Space") {
+            const carouselEl = Array.from(document.querySelectorAll(".carousel > div"));
+            const carouselRadio = Array.from(document.querySelectorAll(".carousel input[type=radio]"));
+            carouselActivePreviewImg = carouselActivePreviewImg === -1 ? carouselRadio.findIndex((el) => el.checked) : carouselActivePreviewImg;
+            console.log('currentSelectedIndex ', carouselActivePreviewImg);
+
+            if(event.code === "ArrowRight") {
+                if(carouselRadio[carouselActivePreviewImg]) {
+                    console.log("current ", carouselRadio[carouselActivePreviewImg]);
+                    console.log("active ", document.activeElement);
+                    if(carouselRadio[carouselActivePreviewImg]) {
+                        console.log("next ", !!carouselRadio[carouselActivePreviewImg+1] ?? carouselRadio[carouselActivePreviewImg+1]);
+                        carouselEl[carouselActivePreviewImg+1].querySelector("img").click();
+                        carouselActivePreviewImg++;
+                    }
+                    // if (document.activeElement.classList.contains('item')) {
+                    //    
+                    // }
+                }
+            } else if(event.code === "ArrowLeft") {
+                
+            } else if(event.code === "Space") {
+                
+            }
+        }
+
+        event.preventDefault();
+    }
 
     function dailyImagesPreview(event) {
         document.querySelector(".preview") && document.querySelector(".preview").remove(); // close old, before open new
@@ -1819,6 +1854,8 @@
 
         const carousel = document.createElement("div");
         carousel.className = "carousel";
+        carousel.addEventListener("keydown", carouselKeyDown);
+        carousel.setAttribute("tabindex", 0);
 
         const carouselLoader = document.createElement("p");
         carouselLoader.style.position = "absolute";
@@ -1839,6 +1876,9 @@
         close.className = "close";
         close.innerText = "X";
         close.onclick = () => {
+            document.querySelector(".carousel").removeEventListener("keydown", carouselKeyDown);
+            document.body.style.overflow = "unset";
+            
             preview.remove();
             document.querySelector('#calendar-content').innerHTML = '';
             generateCalendar();
@@ -1891,7 +1931,7 @@
                 inputRadio.type = "radio";
                 inputRadio.name = "selected";
                 inputRadio.checked = file["selected"];
-                console.log(file["selected"]);
+                // console.log(file["selected"]);
                 inputRadio.addEventListener("change", (event) => {
                     // console.log(arrangedData[month][day][year]);
                     // console.log(event);
@@ -1900,7 +1940,7 @@
                         arrangedData[month][day][year].forEach(file => file["selected"] = false);
                     }
                     file["selected"] = event.target.checked;
-                    console.log(arrangedData[month][day][year]);
+                    // console.log(arrangedData[month][day][year]);
 
                     const saveSelectedData = localStorage.getItem("savedCalendar") ? JSON.parse(localStorage.getItem("savedCalendar")) : {};
                     saveSelectedData[file.path.month] = saveSelectedData[file.path.month] || {};
@@ -1913,16 +1953,20 @@
 
                 const img = document.createElement("img");
                 img.className = "preview-image";
+                
                 const fileBlob = await getBlobImage(file.source_path_log);
                 img.src = getBlob(blobType.image.png, fileBlob.blob);
                 img.onclick = () => {
                     scene.querySelector("img").src = img.src;
                     scene.querySelector("#file-path").innerText = file.source_path_log;
                 };
+                
                 document.querySelector(".carousel-loader-loading").innerText = document.querySelector(".carousel").childElementCount + 1;
+                
                 container.appendChild(inputRadio);
                 container.appendChild(img);
                 carousel.appendChild(container);
+                carousel.focus();
             });
         });
 
