@@ -371,6 +371,10 @@
         .justify-content-space-between {
             justify-content: space-between;
         }
+        .preview-image:focus {
+            padding: 5px;
+            border: 2px lightblue dashed;
+        }
     </style>
 </head>
 <body>
@@ -1797,6 +1801,7 @@
         console.log(event);
         console.log(event.code === "ArrowRight");
         if(event.code === "ArrowRight" || event.code === "ArrowLeft" || event.code === "Space") {
+            const carousel = document.querySelector(".carousel");
             const carouselEl = Array.from(document.querySelectorAll(".carousel > div"));
             const carouselRadio = Array.from(document.querySelectorAll(".carousel input[type=radio]"));
             carouselActivePreviewImg = carouselActivePreviewImg === -1 ? carouselRadio.findIndex((el) => el.checked) : carouselActivePreviewImg;
@@ -1805,15 +1810,31 @@
             if(event.code === "ArrowRight") {
                 if(carouselRadio[carouselActivePreviewImg]) {
                     console.log("current ", carouselRadio[carouselActivePreviewImg]);
-                    console.log("active ", document.activeElement);
                     if(carouselRadio[carouselActivePreviewImg]) {
                         console.log("next ", !!carouselRadio[carouselActivePreviewImg+1] ?? carouselRadio[carouselActivePreviewImg+1]);
-                        carouselEl[carouselActivePreviewImg+1].querySelector("img").click();
+                        const nextItem = carouselEl[carouselActivePreviewImg+1];
+
+                        <!--region Scroll-->
+                        const carouselRect = carousel.getBoundingClientRect();
+                        const carouselMiddlePosition = carouselRect.left + (carouselRect.width / 2);
+                        
+                        const nextItemRect = nextItem.getBoundingClientRect();
+                        const nextItemMiddlePosition = nextItemRect.left + (nextItemRect.width / 2);
+
+                        const scrollOffset = nextItemMiddlePosition - carouselMiddlePosition;
+                        const scrollLeftValue = carousel.scrollLeft + scrollOffset;
+                        console.log('left ', scrollLeftValue);
+                        carousel.scrollTo({
+                            left: scrollLeftValue,
+                            behavior: "smooth"
+                        });
+                        <!--endregion-->
+                        
+                        const img = nextItem.querySelector("img");
+                        img.focus();
+                        img.click();
                         carouselActivePreviewImg++;
                     }
-                    // if (document.activeElement.classList.contains('item')) {
-                    //    
-                    // }
                 }
             } else if(event.code === "ArrowLeft") {
                 
@@ -1918,10 +1939,10 @@
 
         let av = 0;
 
-        Object.keys(arrangedData[month][day]).forEach(year => {
+        Object.keys(arrangedData[month][day]).forEach((year, yearIndex) => {
             // console.log(`year ${year}: `, arrangedData[month][day][year].length);
             av += arrangedData[month][day][year].length;
-            arrangedData[month][day][year].forEach(async (file) => {
+            arrangedData[month][day][year].forEach(async (file, fileIndex) => {
                 // console.log(file);
                 // console.log(`year ${year}: `, arrangedData[month][day][year].length);
                 const container = document.createElement("div");
@@ -1953,6 +1974,7 @@
 
                 const img = document.createElement("img");
                 img.className = "preview-image";
+                img.setAttribute("tabindex", `${yearIndex}${fileIndex}`);
                 
                 const fileBlob = await getBlobImage(file.source_path_log);
                 img.src = getBlob(blobType.image.png, fileBlob.blob);
