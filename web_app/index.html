@@ -1562,7 +1562,26 @@
             value: `72px`
         },
     }
-    
+
+    let eventListeners = [];
+
+    function addTrackedEventListener(element, event, handler) {
+        element.addEventListener(event, handler);
+        eventListeners.push({ element, event, handler });
+    }
+
+    function removeTrackedEventListener(element, event, handler) {
+        const index = eventListeners.findIndex(
+            (listener) => listener.element === element && listener.event === event && listener.handler === handler
+        );
+
+        if (index !== -1) {
+            element.removeEventListener(event, handler);
+            eventListeners.splice(index, 1);  // Remove from the tracked array
+        }
+    }
+
+
     function showEditor(el) {
         referenceToEditor = el.parentNode;
         const editorEl = document.querySelector(".editor-photo");
@@ -1595,12 +1614,14 @@
         const removeControlListeners = () => {
             for(const control in editorControls) {
                 if(editorControls[control].range) {
-                    editorControls[control].range.removeEventListener("input", createRangeUpdateHandler(editorControls[control]));
-                    editorControls[control].number.removeEventListener("input", createNumberUpdateHandler(editorControls[control]));
+                    editorControls[control].range.removeEventListener("input", createRangeUpdateHandler, false);
+                    editorControls[control].number.removeEventListener("input", createNumberUpdateHandler, false);
                 }
             }
 
-            editorControls.objectFit.removeEventListener("change", updateStyles);
+            editorControls.objectFit.removeEventListener("change", updateStyles, false);
+            editorControls.mixBlend.removeEventListener("change", updateStyles, false);
+            editorControls.color.removeEventListener("change", updateStyles, false);
         }
         const createRangeUpdateHandler = (control) => {
             return () => {
@@ -1619,14 +1640,14 @@
         const addControlListeners = () => {
             for(const control in editorControls) {
                 if(editorControls[control].range) {
-                    editorControls[control].range.addEventListener("input", createRangeUpdateHandler(editorControls[control]));
-                    editorControls[control].number.addEventListener("input", createNumberUpdateHandler(editorControls[control]));
+                    editorControls[control].range.addEventListener("input", createRangeUpdateHandler(editorControls[control]), false);
+                    editorControls[control].number.addEventListener("input", createNumberUpdateHandler(editorControls[control]), false);
                 }
             }
 
-            editorControls.objectFit.addEventListener("change", updateStyles);
-            editorControls.mixBlend.addEventListener("change", updateStyles);
-            editorControls.color.addEventListener("change", updateStyles);
+            editorControls.objectFit.addEventListener("change", updateStyles, false);
+            editorControls.mixBlend.addEventListener("change", updateStyles, false);
+            editorControls.color.addEventListener("change", updateStyles, false);
         }
         const closeEditor = () => {
             editorEl.classList.remove("m-open");
@@ -1694,8 +1715,9 @@
     }
     
     function applyEditorPhotoValue(dayEl, imgEl, data) {
+        console.log('applyEditorPhotoValue ', data);
         imgEl.style.filter = `contrast(${data.contrast}) brightness(${data.brightness})`;
-        imgEl.style.transform = `scale(${data.scale}) translate(${data.photoTranslateY}px, ${data.photoTranslateY}px) rotate(${data.rotate}deg)`;
+        imgEl.style.transform = `scale(${data.scale}) translate(${data.photoTranslateX}px, ${data.photoTranslateY}px) rotate(${data.rotate}deg)`;
         imgEl.style.objectFit = data.objectFit;
 
         dayEl.style.fontSize = `${data.size}px`;
@@ -1783,10 +1805,6 @@
         filePath.style.textAlign = "center";
         scene.appendChild(filePath);
 
-        const pickThisImage = document.createElement("input");
-        pickThisImage.type = "checkbox";
-        scene.appendChild(pickThisImage);
-
         const carousel = document.createElement("div");
         carousel.className = "carousel";
 
@@ -1826,6 +1844,7 @@
                 // console.log(`year ${year}: `, arrangedData[month][day][year].length);
                 const container = document.createElement("div");
                 container.style.position = "relative";
+                
                 const inputRadio = document.createElement("input");
                 inputRadio.type = "radio";
                 inputRadio.name = "selected";
@@ -1835,14 +1854,17 @@
                     // console.log(arrangedData[month][day][year]);
                     // console.log(event);
                     // console.log(file);
-                    arrangedData[month][day][year].forEach(file => file["selected"] = false);
+                    for (let year in arrangedData[month][day]) {
+                        arrangedData[month][day][year].forEach(file => file["selected"] = false);
+                    }
                     file["selected"] = event.target.checked;
+                    console.log(arrangedData[month][day][year]);
 
                     const saveSelectedData = localStorage.getItem("savedCalendar") ? JSON.parse(localStorage.getItem("savedCalendar")) : {};
                     saveSelectedData[file.path.month] = saveSelectedData[file.path.month] || {};
                     saveSelectedData[file.path.month][file.path.day] = saveSelectedData[file.path.month][file.path.day] || {};
-                    saveSelectedData[file.path.month][file.path.day][file.path.year] = saveSelectedData[file.path.month][file.path.day][file.path.year] || [];
-                    saveSelectedData[file.path.month][file.path.day][file.path.year].push(file);
+                    saveSelectedData[file.path.month][file.path.day][file.path.year] = {};
+                    saveSelectedData[file.path.month][file.path.day][file.path.year] = file;
 
                     localStorage.setItem("savedCalendar", JSON.stringify(saveSelectedData));
                 });
