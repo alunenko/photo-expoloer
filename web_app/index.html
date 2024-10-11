@@ -1799,45 +1799,65 @@
     
     function carouselKeyDown(event) {
         console.log(event);
-        console.log(event.code === "ArrowRight");
         if(event.code === "ArrowRight" || event.code === "ArrowLeft" || event.code === "Space") {
             const carousel = document.querySelector(".carousel");
             const carouselEl = Array.from(document.querySelectorAll(".carousel > div"));
             const carouselRadio = Array.from(document.querySelectorAll(".carousel input[type=radio]"));
-            carouselActivePreviewImg = carouselActivePreviewImg === -1 ? carouselRadio.findIndex((el) => el.checked) : carouselActivePreviewImg;
+            
+            carouselActivePreviewImg = carouselActivePreviewImg === -1 ? carouselRadio.findIndex((el) => el.checked) ? carouselRadio.findIndex((el) => el.checked) : 0 : carouselActivePreviewImg;
+            
             console.log('currentSelectedIndex ', carouselActivePreviewImg);
 
             if(event.code === "ArrowRight") {
-                if(carouselRadio[carouselActivePreviewImg]) {
-                    console.log("current ", carouselRadio[carouselActivePreviewImg]);
-                    if(carouselRadio[carouselActivePreviewImg]) {
-                        console.log("next ", !!carouselRadio[carouselActivePreviewImg+1] ?? carouselRadio[carouselActivePreviewImg+1]);
-                        const nextItem = carouselEl[carouselActivePreviewImg+1];
+                // console.log("current ", carouselRadio[carouselActivePreviewImg]);
+                // console.log("next ", !!carouselRadio[carouselActivePreviewImg+1]);
+                if(carouselRadio[carouselActivePreviewImg+1]) {
+                    const nextItem = carouselEl[carouselActivePreviewImg+1];
 
-                        <!--region Scroll-->
-                        const carouselRect = carousel.getBoundingClientRect();
-                        const carouselMiddlePosition = carouselRect.left + (carouselRect.width / 2);
-                        
-                        const nextItemRect = nextItem.getBoundingClientRect();
-                        const nextItemMiddlePosition = nextItemRect.left + (nextItemRect.width / 2);
+                    <!--region Scroll-->
+                    const carouselRect = carousel.getBoundingClientRect();
+                    const carouselMiddlePosition = carouselRect.left + (carouselRect.width / 2);
 
-                        const scrollOffset = nextItemMiddlePosition - carouselMiddlePosition;
-                        const scrollLeftValue = carousel.scrollLeft + scrollOffset;
-                        console.log('left ', scrollLeftValue);
-                        carousel.scrollTo({
-                            left: scrollLeftValue,
-                            behavior: "smooth"
-                        });
-                        <!--endregion-->
-                        
-                        const img = nextItem.querySelector("img");
-                        img.focus();
-                        img.click();
-                        carouselActivePreviewImg++;
-                    }
+                    const nextItemRect = nextItem.getBoundingClientRect();
+                    const nextItemMiddlePosition = nextItemRect.left + (nextItemRect.width / 2);
+
+                    const scrollOffset = nextItemMiddlePosition - carouselMiddlePosition;
+                    const scrollLeftValue = carousel.scrollLeft + scrollOffset;
+                    // console.log('left ', scrollLeftValue);
+                    carousel.scrollTo({
+                        left: scrollLeftValue,
+                        behavior: "smooth"
+                    });
+                    <!--endregion-->
+
+                    const img = nextItem.querySelector("img");
+                    img.focus();
+                    img.click();
                 }
             } else if(event.code === "ArrowLeft") {
-                
+                if(carouselRadio[carouselActivePreviewImg-1]) {
+                    const prewItem = carouselEl[carouselActivePreviewImg-1];
+
+                    <!--region Scroll-->
+                    const carouselRect = carousel.getBoundingClientRect();
+                    const carouselMiddlePosition = carouselRect.left + (carouselRect.width / 2);
+
+                    const nextItemRect = prewItem.getBoundingClientRect();
+                    const nextItemMiddlePosition = nextItemRect.left + (nextItemRect.width / 2);
+
+                    const scrollOffset = nextItemMiddlePosition - carouselMiddlePosition;
+                    const scrollLeftValue = carousel.scrollLeft + scrollOffset;
+                    // console.log('left ', scrollLeftValue);
+                    carousel.scrollTo({
+                        left: scrollLeftValue,
+                        behavior: "smooth"
+                    });
+                    <!--endregion-->
+
+                    const img = prewItem.querySelector("img");
+                    img.focus();
+                    img.click();
+                }
             } else if(event.code === "Space") {
                 
             }
@@ -1883,6 +1903,7 @@
         carouselLoader.style.right = "0";
         carouselLoader.style.bottom = "0";
         carouselLoader.innerText = "Loading: "
+
         const carouselLoaderTotal = document.createElement("span");
         carouselLoaderTotal.className = "carousel-loader-total"
         carouselLoaderTotal.innerText = "0";
@@ -1890,6 +1911,7 @@
         const carouselLoaderLoading = document.createElement("span");
         carouselLoaderLoading.className = "carousel-loader-loading";
         carouselLoaderLoading.innerText = "0";
+
         carouselLoader.appendChild(carouselLoaderLoading);
         carouselLoader.appendChild(carouselLoaderTotal);
 
@@ -1903,11 +1925,12 @@
             preview.remove();
             document.querySelector('#calendar-content').innerHTML = '';
             generateCalendar();
+            carouselActivePreviewImg = -1;
         };
         
         const fullScreen = document.createElement("div");
         fullScreen.className = "fullscreen";
-        fullScreen.innerText = "FS";
+        fullScreen.innerText = "[ ]";
         fullScreen.onclick = () => {
             const preview = document.querySelector(".preview");
 
@@ -1979,6 +2002,8 @@
                 const fileBlob = await getBlobImage(file.source_path_log);
                 img.src = getBlob(blobType.image.png, fileBlob.blob);
                 img.onclick = () => {
+                    carouselActivePreviewImg = Array.from(document.querySelectorAll(".carousel img")).findIndex((imgIndex) => img.src === imgIndex.src);
+                    // console.log('carouselActivePreviewImg ', carouselActivePreviewImg);
                     scene.querySelector("img").src = img.src;
                     scene.querySelector("#file-path").innerText = file.source_path_log;
                 };
