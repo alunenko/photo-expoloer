@@ -1799,7 +1799,7 @@
     
     function carouselKeyDown(event) {
         console.log(event);
-        if(event.code === "ArrowRight" || event.code === "ArrowLeft" || event.code === "Space") {
+        if(event.code === "ArrowRight" || event.code === "ArrowLeft" || event.code === "Space" || event.code === "Escape") {
             const carousel = document.querySelector(".carousel");
             const carouselEl = Array.from(document.querySelectorAll(".carousel > div"));
             const carouselRadio = Array.from(document.querySelectorAll(".carousel input[type=radio]"));
@@ -1859,7 +1859,9 @@
                     img.click();
                 }
             } else if(event.code === "Space") {
-                
+                carouselEl[carouselActivePreviewImg].querySelector("input").click();
+            } else if(event.code === "Escape") { 
+                document.querySelector(".preview .close").click();
             }
         }
 
