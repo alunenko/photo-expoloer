@@ -26,14 +26,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// // Serve static files from the 'public' directory
-// app.use(express.static(path.join(__dirname, 'public')));
-//
-// // Route to serve index.html for the root URL
-// app.get('/', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'public', 'index.html'));
-// });
-
 app.post('/processFiles', (req, res) => {
     currentSourceFolder = req.body.sourceFolder;
     const {outputFolder, videoFolder} = req.body;
