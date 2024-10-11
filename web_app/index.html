@@ -40,6 +40,19 @@
             flex: 1 1 50%;
             word-break: break-word;
         }
+        .file span {
+            position: relative;
+        }
+        .file span.duplicate:after {
+            content: 'click to copy path';
+            position: absolute;
+            background-color: rgba(255, 128, 128, .8);
+            top: 50%;
+            left: 0;
+            text-align: center;
+            transform: translateY(-50%);
+            z-index: 2;
+        }
 
         p.error {
             color: red;
@@ -840,6 +853,19 @@
         } else {
             e.target.textContent = errorCodes[result.error_code];
             const parentElement = e.target.parentNode;
+            
+            Array.from(parentElement.querySelectorAll("span")).forEach((spanEl) => {
+                spanEl.className = "duplicate";
+                spanEl.onclick = () => {
+                    navigator.clipboard.writeText(spanEl.innerText)
+                        .then(() => {
+                            console.log("Text copied to clipboard");
+                        })
+                        .catch(err => {
+                            console.error("Error copying text: ", err);
+                        });
+                }
+            });
 
             parentElement.appendChild(errorMoveFileClick(result.message));
             parentElement.appendChild(deleteSourceButton(i));
