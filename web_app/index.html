@@ -1363,31 +1363,26 @@
 
         if(isLoadData) {
             loadedCalendarData = JSON.parse(localStorage.getItem("savedCalendar"));
-            console.log("saved data", loadedCalendarData);
+            // console.log("saved data", loadedCalendarData);
 
             Object.keys(loadedCalendarData).forEach((month) => {
-                console.log(`month ${month}`);
+                // console.log(`month ${month}`);
 
                 Object.keys(loadedCalendarData[month]).forEach((day) => {
-                    console.log(`day ${day}`);
+                    // console.log(`day ${day}`);
 
                     Object.keys(loadedCalendarData[month][day]).forEach((year) => {
-                        console.log(`year ${year}`);
+                        // console.log(`year ${year}`);
 
-                        Object.keys(loadedCalendarData[month][day][year]).forEach((loadedFile) => {
-                            console.log(`name ${loadedFile.name}`);
+                        const loadedName = loadedCalendarData[month][day][year].origin_name;
 
-                            const loadedName = loadedCalendarData[month][day][year][loadedFile].origin_name;
+                        arrangedData[month]?.[day]?.[year] && arrangedData[month][day][year].forEach((arrangedFile) => {
+                            const arrangedName = arrangedFile.origin_name;
 
-
-                            arrangedData[month]?.[day]?.[year] && arrangedData[month][day][year].forEach((arrangedFile) => {
-                                const arrangedName = arrangedFile.origin_name;
-
-                                if(arrangedName === loadedName) {
-                                    arrangedFile["selected"] = loadedCalendarData[month][day][year][loadedFile]["selected"];
-                                }
-                            });
-                        })
+                            if(arrangedName === loadedName) {
+                                arrangedFile["selected"] = loadedCalendarData[month][day][year]["selected"];
+                            }
+                        });
                     });
                 })
             });
@@ -1396,7 +1391,7 @@
         }
 
         const userPickMonth = document.querySelector('#calendar-config-month').value;
-        console.log(`userPickMonth ${userPickMonth}`);
+        // console.log(`userPickMonth ${userPickMonth}`);
         const currentMonth = userPickMonth ? userPickMonth - 1 : Object.keys(arrangedData)[0] - 1;
         // const currentMonthLeadZero = currentMonth + 1 < 10 ? `0${currentMonth + 1}` : `${currentMonth + 1}`;
         const currentMonthLeadZero = leadZero(currentMonth + 1);
@@ -1440,25 +1435,25 @@
                 let totalPhotoPerDay = 0;
 
                 // all years in this month+day
-                Object.entries(arrangedData[currentMonthLeadZero][dayInMonthLeadZero]).forEach((item) => {
-                    // console.log(item);
-                    totalPhotoPerDay += arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].length;
-                    arrangedData[currentMonthLeadZero][dayInMonthLeadZero][item[0]].forEach(async (file) => {
+                Object.keys(arrangedData[currentMonthLeadZero][dayInMonthLeadZero]).forEach((year) => {
+                    // console.log(year);
+                    totalPhotoPerDay += arrangedData[currentMonthLeadZero][dayInMonthLeadZero][year].length;
+                    arrangedData[currentMonthLeadZero][dayInMonthLeadZero][year].forEach(async (file) => {
                         if(file.selected) {
                             let photoYear = document.createElement('span');
                             photoYear.classList.add('m-year');
-                            photoYear.innerText = item[0];
+                            photoYear.innerText = year;
 
                             const img = document.createElement('img');
                             const imgSrc = await getBlobImage(file.source_path_log);
                             img.src = getBlob(blobType.image.png, imgSrc.blob);
                             
-                            img.addEventListener("click", (event) => {
-                                document.body.style.overflow = "hidden";
-                                dailyImagesPreview(event);
-                            });
+                            // img.addEventListener("click", (event) => {
+                            //     document.body.style.overflow = "hidden";
+                            //     dailyImagesPreview(event);
+                            // });
                             
-                            const savedData = globalData?.["editor"]?.[+currentMonthLeadZero]?.[dayInMonth]?.[item[0]];
+                            const savedData = globalData?.["editor"]?.[+currentMonthLeadZero]?.[dayInMonth]?.[year];
                             if(savedData) {
                                 applyEditorPhotoValue(photoDay, img, savedData);
                             }
@@ -1467,10 +1462,10 @@
                             container.appendChild(img);
                             container.appendChild(photoYear);
                         } else {
-                            divElement.addEventListener("click", (event) => {
-                                document.body.style.overflow = "hidden";
-                                dailyImagesPreview(event);
-                            });
+                            // divElement.addEventListener("click", (event) => {
+                            //     document.body.style.overflow = "hidden";
+                            //     dailyImagesPreview(event);
+                            // });
                         }
                     });
                 });
@@ -1486,6 +1481,15 @@
 
                 divElement.appendChild(photoDay);
                 divElement.appendChild(container);
+                
+                const clickTargetEl = divElement.querySelector("img") || divElement;
+
+                console.log('clickTargetEl ', clickTargetEl);
+
+                clickTargetEl.addEventListener("click", (event) => {
+                    document.body.style.overflow = "hidden";
+                    dailyImagesPreview(event);
+                });
 
                 document.querySelector('#calendar-content').appendChild(divElement);
             } else {
@@ -1502,7 +1506,7 @@
                 document.querySelector('#calendar-content').appendChild(divElement);
             }
         }
-
+        
         addCalendarShiftDay(7 - numberOfLastDayInMonth);
     }
 
@@ -1608,24 +1612,6 @@
             number: document.querySelector("#editor-number-size-number"),
             value: `72px`
         },
-    }
-
-    let eventListeners = [];
-
-    function addTrackedEventListener(element, event, handler) {
-        element.addEventListener(event, handler);
-        eventListeners.push({ element, event, handler });
-    }
-
-    function removeTrackedEventListener(element, event, handler) {
-        const index = eventListeners.findIndex(
-            (listener) => listener.element === element && listener.event === event && listener.handler === handler
-        );
-
-        if (index !== -1) {
-            element.removeEventListener(event, handler);
-            eventListeners.splice(index, 1);  // Remove from the tracked array
-        }
     }
 
 
@@ -2031,7 +2017,7 @@
                 const img = document.createElement("img");
                 img.className = "preview-image";
                 img.setAttribute("tabindex", `${yearIndex}${fileIndex}`);
-                
+                // console.log(file.source_path_log);
                 const fileBlob = await getBlobImage(file.source_path_log);
                 img.src = getBlob(blobType.image.png, fileBlob.blob);
                 img.onclick = () => {
@@ -2057,6 +2043,8 @@
         preview.appendChild(carousel);
         document.querySelector("#calendar").appendChild(preview);
         document.querySelector(".carousel-loader-total").innerText = `/${av}`;
+        
+        event.preventDefault();
     }
 
     function fn(src) {
