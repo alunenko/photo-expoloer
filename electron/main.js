@@ -17,6 +17,18 @@ function createWindow() {
 
     win.loadFile('index.html');
 
+    // Request access to file system
+    win.webContents.on('did-finish-load', async () => {
+        const result = await dialog.showOpenDialog(win, {
+            properties: ['openDirectory'] // or ['openFile'] for file selection
+        });
+
+        if (!result.canceled) {
+            console.log("Selected path:", result.filePaths);
+            // Proceed with the selected path
+        }
+    });
+    
     // Handle window close events
     win.on('close', (event) => {
         const choice = require('electron').dialog.showMessageBoxSync(win, {

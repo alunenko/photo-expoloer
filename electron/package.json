@@ -20,7 +20,10 @@
       "target": "nsis"
     },
     "mac": {
-      "target": "dmg"
+      "category": "public.app-category.utilities",
+      "target": "dmg",
+      "entitlements": "entitlements.plist",
+      "entitlementsInherit": "entitlements.plist"
     },
     "linux": {
       "target": "AppImage"

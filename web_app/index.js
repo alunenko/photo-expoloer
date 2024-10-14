@@ -1,13 +1,14 @@
 const express = require('express');
+const app = express();
 const fs = require('fs');
 const fsExtra = require('fs-extra');
 const path = require('path');
 const util = require('util');
 const EventEmitter = require('events');
-const { WebSocketServer } = require('ws');
+//const { WebSocketServer } = require('ws');
+const expressWs = require('express-ws')(app);
 const { spawn} = require('child_process');
 
-const app = express();
 const port = 3000;
 
 let currentSourceFolder = '';
@@ -27,12 +28,12 @@ app.use((req, res, next) => {
 });
 
 // // Serve static files from the 'public' directory
-// app.use(express.static(path.join(__dirname, 'public')));
-//
-// // Route to serve index.html for the root URL
-// app.get('/', (req, res) => {
-//     res.sendFile(path.join(__dirname, 'public', 'index.html'));
-// });
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Route to serve index.html for the root URL
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 app.post('/processFiles', (req, res) => {
     currentSourceFolder = req.body.sourceFolder;
@@ -282,7 +283,7 @@ async function dotClean(path) {
 }
 
 <!--region ScanFolder/scanDirectory-->
-const webSocetPort = 4200;
+// const webSocetPort = 3000;
 
 class FolderScanner extends EventEmitter {
     async scanDirectory(sourcePath, outputPath = "") {
@@ -354,10 +355,44 @@ class FolderScanner extends EventEmitter {
 }
 
 // WebSocket server setup
-const server = new WebSocketServer({ port: webSocetPort });
+// const server = new WebSocketServer({ port: webSocetPort });
 
-server.on('connection', (ws) => {
-    console.log('Client connected');
+// server.on('connection', (ws) => {
+//     console.log('Client connected');
+//     const folderScanner = new FolderScanner();
+//
+//     folderScanner.on('progress', (data) => {
+//         ws.send(JSON.stringify({ type: 'progress', data }));
+//     });
+//
+//     folderScanner.on('error', (error) => {
+//         ws.send(JSON.stringify({ type: 'error', error }));
+//     });
+//
+//     folderScanner.on('start', (data) => {
+//         ws.send(JSON.stringify({ type: 'start', data }));
+//     });
+//
+//     folderScanner.on('end', (data) => {
+//         ws.send(JSON.stringify({ type: 'end', data }));
+//     });
+//
+//     ws.on('message', (message) => {
+//         const { type, sourcePath, outputPath } = JSON.parse(message);
+//         if (type === 'startScan') {
+//             folderScanner.startScan(sourcePath, outputPath);
+//         }
+//     });
+//
+//     ws.on('close', () => {
+//         console.log('Client disconnected');
+//     });
+// });
+app.ws('/websocket', (ws, req) => {
+    // ws.on('message', (msg) => {
+    //     console.log('Received:', msg);
+    //     ws.send('Message received');
+    // });
     const folderScanner = new FolderScanner();
 
     folderScanner.on('progress', (data) => {
@@ -384,9 +419,10 @@ server.on('connection', (ws) => {
     });
 
     ws.on('close', () => {
-        console.log('Client disconnected');
+        console.log('Server disconnected');
     });
 });
+
 <!--endregion-->
 
 app.listen(port, () => {

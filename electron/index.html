@@ -2197,7 +2197,7 @@
             this.outputEl = document.querySelector(`#${project}_output`);
             this._removeDownload();
             globalData.files = [];
-            const ws = new WebSocket("ws://localhost:4200");
+            const ws = new WebSocket("ws://localhost:3000/websocket");
 
             ws.onopen = () => {
                 ws.send(JSON.stringify({ type: 'startScan', sourcePath: sourcePath, outputPath: outputPath }));
@@ -2222,7 +2222,7 @@
             };
 
             ws.onclose = () => {
-                console.log('client disconnected');
+                console.log('Client disconnected');
             }
         }
 
@@ -2321,7 +2321,7 @@
     // TODO: for explorer use ScanFolder.scanFolder
     function scanFolder(project, sourcePath, outputPath) {
         const output = document.getElementById('explorer_output');
-        const ws = new WebSocket("ws://localhost:4200");
+        const ws = new WebSocket("ws://localhost:3000/websocket");
         globalData.files = [];
 
         ws.onopen = () => {
@@ -2361,7 +2361,7 @@
         };
 
         ws.onclose = () => {
-            console.log('client disconnected')
+            console.log('Client disconnected')
         }
     }
 
