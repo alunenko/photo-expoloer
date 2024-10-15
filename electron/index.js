@@ -285,23 +285,33 @@ async function dotClean(path) {
 <!--region ScanFolder/scanDirectory-->
 // const webSocetPort = 3000;
 
-class FolderScanner extends EventEmitter {
+/**
+ * as Websocket
+ * class FolderScanner extends EventEmitter {
+ */
+
+/**
+ * as Request
+ * class FolderScanner {
+ */
+class FolderScanner {
     async scanDirectory(sourcePath, outputPath = "") {
         return new Promise(resolve => {
             console.log(`Scanning directory: ${sourcePath}`);
             fs.readdir(sourcePath, { withFileTypes: true }, async (err, dirs) => {
                 if (err) {
-                    this.emit('error', { message: err.message, stack: err.stack });
-                    console.error(`Error reading directory ${sourcePath}:`, err);
-                    return;
+                    // this.emit('error', { message: err.message, stack: err.stack });
+                    console.error(`Error reading directory ${sourcePath}: `, err);
+                    throw new Error(`Error reading directory ${sourcePath}: `, err);
                 }
+                const data = [];
                 await Promise.all(
                     dirs.map(async (item) => {
                         const itemPath = path.join(sourcePath, item.name);
                         if (item.isDirectory()) {
                             const result = { name: item.name, type: 'directory', path: itemPath };
-                            // console.log(result);
-                            this.emit('progress', result);
+                            console.log(result);
+                            // this.emit('progress', result);
                             // Recursively scan subdirectories
                             await this.scanDirectory(itemPath);
                         } else {
@@ -332,21 +342,23 @@ class FolderScanner extends EventEmitter {
                                 source_path_log: itemPath,
                                 output_path_log: path.join(outputPath, year, output_path, item.name),
                             };
-                            // console.log(result);
-                            this.emit('progress', result);
+                            console.log(result);
+                            data.push(result);
+                            // this.emit('progress', result);
+                            return result;
                         }
                     })
                 ).catch((err) => {
-                    this.emit('error', {message: err.message, stack: err.stack});
+                    throw new Error('error ', {message: err.message, stack: err.stack});
                 });
 
-                resolve();
+                resolve(data);
             });
         });
     }
 
     async startScan(sourcePath, outputPath) {
-        this.emit('start', { path: sourcePath });
+        // this.emit('start', { path: sourcePath });
         console.log('Scanning started...');
         await this.scanDirectory(sourcePath, outputPath);
         this.emit('end', { path: sourcePath });
@@ -388,39 +400,48 @@ class FolderScanner extends EventEmitter {
 //         console.log('Client disconnected');
 //     });
 // });
-app.ws('/websocket', (ws, req) => {
-    // ws.on('message', (msg) => {
-    //     console.log('Received:', msg);
-    //     ws.send('Message received');
-    // });
+// app.ws('/websocket', (ws, req) => {
+//     // ws.on('message', (msg) => {
+//     //     console.log('Received:', msg);
+//     //     ws.send('Message received');
+//     // });
+//     const folderScanner = new FolderScanner();
+//
+//     folderScanner.on('progress', (data) => {
+//         ws.send(JSON.stringify({ type: 'progress', data }));
+//     });
+//
+//     folderScanner.on('error', (error) => {
+//         ws.send(JSON.stringify({ type: 'error', error }));
+//     });
+//
+//     folderScanner.on('start', (data) => {
+//         ws.send(JSON.stringify({ type: 'start', data }));
+//     });
+//
+//     folderScanner.on('end', (data) => {
+//         ws.send(JSON.stringify({ type: 'end', data }));
+//     });
+//
+//     ws.on('message', (message) => {
+//         const { type, sourcePath, outputPath } = JSON.parse(message);
+//         if (type === 'startScan') {
+//             folderScanner.startScan(sourcePath, outputPath);
+//         }
+//     });
+//
+//     ws.on('close', () => {
+//         console.log('Server disconnected');
+//     });
+// });
+
+app.post('/websocket', async (req,res) => {
     const folderScanner = new FolderScanner();
-
-    folderScanner.on('progress', (data) => {
-        ws.send(JSON.stringify({ type: 'progress', data }));
-    });
-
-    folderScanner.on('error', (error) => {
-        ws.send(JSON.stringify({ type: 'error', error }));
-    });
-
-    folderScanner.on('start', (data) => {
-        ws.send(JSON.stringify({ type: 'start', data }));
-    });
-
-    folderScanner.on('end', (data) => {
-        ws.send(JSON.stringify({ type: 'end', data }));
-    });
-
-    ws.on('message', (message) => {
-        const { type, sourcePath, outputPath } = JSON.parse(message);
-        if (type === 'startScan') {
-            folderScanner.startScan(sourcePath, outputPath);
-        }
-    });
-
-    ws.on('close', () => {
-        console.log('Server disconnected');
-    });
+    // console.log(req);
+    console.log('Scanning started...', req.body.sourcePath);
+    const result = await folderScanner.scanDirectory(req.body.sourcePath, req.body.outputPath);
+    console.log('Scanning ended.', req.body.outputPath);
+    return res.json(result);
 });
 
 <!--endregion-->

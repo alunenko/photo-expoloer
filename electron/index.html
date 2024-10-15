@@ -2193,37 +2193,68 @@
             // });
         }
         
-        scanFolder(project, sourcePath, outputPath) {
+        async scanFolder(project, sourcePath, outputPath) {
+            <!--region as REQUEST -->
             this.outputEl = document.querySelector(`#${project}_output`);
             this._removeDownload();
             globalData.files = [];
-            const ws = new WebSocket("ws://localhost:3000/websocket");
 
-            ws.onopen = () => {
-                ws.send(JSON.stringify({ type: 'startScan', sourcePath: sourcePath, outputPath: outputPath }));
-            };
+            const apiUrl = 'http://localhost:3000/websocket';
 
-            ws.onmessage = (event) => {
-                const { type, data, error } = JSON.parse(event.data);
-                if (type === 'progress') {
-                    this.outputEl.textContent = data.source_path_log;
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // Adjust based on your server's expectations
+                        // Add any other headers if needed
+                    },
+                    body: JSON.stringify({sourcePath, outputPath}),
+                });
 
-                    if (data.type !== 'directory') {
-                        globalData.files.push(data);
-                    }
-                } else if (type === 'error') {
-                    this.outputEl.textContent = '\nError: ' + error.message;
-                } else if (type === 'start') {
-                    this.outputEl.textContent = 'Scanning started...';
-                } else if (type === 'end') {
-                    this._scanEnd.bind(this)(project);
-                    ws.close();
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-            };
 
-            ws.onclose = () => {
-                console.log('Client disconnected');
+                const scanFolderResponse = await response.json();
+                console.log(scanFolderResponse);
+
+                globalData.files.push(...scanFolderResponse);
+                this._scanEnd(project);
+            } catch (error) {
+                console.error('ScanFolderAsRequestError:', error);
+                throw error;
             }
+            <!--endregion-->
+
+            <!--region as Socket-->
+            // const ws = new WebSocket("ws://localhost:3000/websocket");
+            //
+            // ws.onopen = () => {
+            //     ws.send(JSON.stringify({ type: 'startScan', sourcePath: sourcePath, outputPath: outputPath }));
+            // };
+            //
+            // ws.onmessage = (event) => {
+            //     const { type, data, error } = JSON.parse(event.data);
+            //     if (type === 'progress') {
+            //         this.outputEl.textContent = data.source_path_log;
+            //
+            //         if (data.type !== 'directory') {
+            //             globalData.files.push(data);
+            //         }
+            //     } else if (type === 'error') {
+            //         this.outputEl.textContent = '\nError: ' + error.message;
+            //     } else if (type === 'start') {
+            //         this.outputEl.textContent = 'Scanning started...';
+            //     } else if (type === 'end') {
+            //         this._scanEnd.bind(this)(project);
+            //         ws.close();
+            //     }
+            // };
+            //
+            // ws.onclose = () => {
+            //     console.log('Client disconnected');
+            // }
+            <!--endregion-->
         }
 
         upload() {
@@ -2319,51 +2350,51 @@
     // type: calendar, explorer
     // deprecated
     // TODO: for explorer use ScanFolder.scanFolder
-    function scanFolder(project, sourcePath, outputPath) {
-        const output = document.getElementById('explorer_output');
-        const ws = new WebSocket("ws://localhost:3000/websocket");
-        globalData.files = [];
-
-        ws.onopen = () => {
-            ws.send(JSON.stringify({ type: 'startScan', sourcePath: sourcePath, outputPath: outputPath }));
-        };
-
-        ws.onmessage = (event) => {
-            const { type, data, error } = JSON.parse(event.data);
-            if (type === 'progress') {
-                output.textContent = data.source_path_log;
-
-                if (data.type !== 'directory') {
-                    globalData.files.push(data);
-                }
-            } else if (type === 'error') {
-                output.textContent = '\nError: ' + error.message;
-            } else if (type === 'start') {
-                output.textContent = 'Scanning started...';
-            } else if (type === 'end') {
-                console.log(globalData);
-                globalData.files.forEach(file => arrangeInputData(file));
-                // saveScanResults();
-                arrangedData["00"]?.["00"]?.["0000"]?.forEach(file => showMissedDataInFiles(file.source_path_log));
-                if(project === 'calendar') {
-                    updateMonthSelectOptions();
-                } else if(project === 'explorer') {
-                    displayResults();
-                } else {
-                    
-                }
-                
-                // scanFolder HERE
-                
-                output.textContent = project === 'calendar' ? 'Select month.' : "Scanning ended.";
-                ws.close();
-            }
-        };
-
-        ws.onclose = () => {
-            console.log('Client disconnected')
-        }
-    }
+    // function scanFolder(project, sourcePath, outputPath) {
+    //     const output = document.getElementById('explorer_output');
+    //     const ws = new WebSocket("ws://localhost:3000/websocket");
+    //     globalData.files = [];
+    //
+    //     ws.onopen = () => {
+    //         ws.send(JSON.stringify({ type: 'startScan', sourcePath: sourcePath, outputPath: outputPath }));
+    //     };
+    //
+    //     ws.onmessage = (event) => {
+    //         const { type, data, error } = JSON.parse(event.data);
+    //         if (type === 'progress') {
+    //             output.textContent = data.source_path_log;
+    //
+    //             if (data.type !== 'directory') {
+    //                 globalData.files.push(data);
+    //             }
+    //         } else if (type === 'error') {
+    //             output.textContent = '\nError: ' + error.message;
+    //         } else if (type === 'start') {
+    //             output.textContent = 'Scanning started...';
+    //         } else if (type === 'end') {
+    //             console.log(globalData);
+    //             globalData.files.forEach(file => arrangeInputData(file));
+    //             // saveScanResults();
+    //             arrangedData["00"]?.["00"]?.["0000"]?.forEach(file => showMissedDataInFiles(file.source_path_log));
+    //             if(project === 'calendar') {
+    //                 updateMonthSelectOptions();
+    //             } else if(project === 'explorer') {
+    //                 displayResults();
+    //             } else {
+    //                
+    //             }
+    //            
+    //             // scanFolder HERE
+    //            
+    //             output.textContent = project === 'calendar' ? 'Select month.' : "Scanning ended.";
+    //             ws.close();
+    //         }
+    //     };
+    //
+    //     ws.onclose = () => {
+    //         console.log('Client disconnected')
+    //     }
+    // }
 
     function showMissedDataInFiles(path) {
         if(!isIgnored(path)) {
